@@ -1,0 +1,2711 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZapComanda — Painel do Restaurante</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #222;
+      --border: #2e2e2e;
+      --text: #f0f0f0;
+      --text2: #999;
+      --accent: #E63946;
+      --green: #2ecc71;
+      --yellow: #f1c40f;
+      --blue: #3498db;
+      --orange: #e67e22;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ---- LOGIN ---- */
+    #tela-login {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+
+    .login-box h1 { font-size: 1.8rem; margin-bottom: 6px; }
+    .login-box p { color: var(--text2); margin-bottom: 28px; font-size: 0.95rem; }
+
+    .field { margin-bottom: 14px; text-align: left; }
+    .field label { display: block; font-size: 0.85rem; color: var(--text2); margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 22px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn.full { width: 100%; }
+    .btn.sm { padding: 7px 14px; font-size: 0.82rem; }
+    .btn.ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn.ghost:hover { border-color: var(--text2); }
+    .btn.green { background: var(--green); }
+    .btn.blue { background: var(--blue); }
+    .btn.orange { background: var(--orange); }
+
+    #login-erro { color: var(--accent); font-size: 0.85rem; margin-top: 10px; min-height: 20px; }
+
+    /* ---- LAYOUT PRINCIPAL ---- */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-logo { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .header-nome { font-size: 0.95rem; color: var(--text2); }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .status-badge.aberto  { background: #1a3a2a; color: var(--green); border: 1px solid #2ecc7133; }
+    .status-badge.fechado { background: #3a1a1a; color: var(--accent); border: 1px solid #E6394633; }
+    .status-badge::before { content: '●'; font-size: 0.7rem; }
+
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 4px;
+      padding: 0 24px;
+      overflow-x: auto;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--text2);
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+    .nav-btn:hover { color: var(--text); }
+    .nav-btn.ativo { color: var(--accent); border-bottom-color: var(--accent); }
+
+    main { flex: 1; padding: 24px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+    /* ---- ABAS ---- */
+    .aba { display: none; }
+    .aba.ativa { display: block; }
+
+    /* ---- CARDS ---- */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .card-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card-stat .label { font-size: 0.8rem; color: var(--text2); margin-bottom: 8px; }
+    .card-stat .valor { font-size: 2rem; font-weight: 700; }
+    .card-stat .valor.verde { color: var(--green); }
+    .card-stat .valor.amarelo { color: var(--yellow); }
+    .card-stat .valor.vermelho { color: var(--accent); }
+
+    /* ---- LISTA DE PEDIDOS ---- */
+    .pedidos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .pedido-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      position: relative;
+    }
+
+    .pedido-card.aguardando { border-left: 3px solid var(--yellow); }
+    .pedido-card.confirmado { border-left: 3px solid var(--blue); }
+    .pedido-card.em_producao { border-left: 3px solid var(--orange); }
+    .pedido-card.saiu { border-left: 3px solid var(--green); }
+    .pedido-card.entregue { border-left: 3px solid #555; opacity: 0.7; }
+
+    .pedido-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .pedido-num { font-size: 0.75rem; color: var(--text2); }
+    .pedido-nome { font-size: 1rem; font-weight: 600; margin-top: 2px; }
+    .pedido-hora { font-size: 0.78rem; color: var(--text2); }
+
+    .status-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+    .pill-aguardando  { background: #3a3a1a; color: var(--yellow); }
+    .pill-confirmado  { background: #1a2a3a; color: var(--blue); }
+    .pill-em_producao { background: #3a2a1a; color: var(--orange); }
+    .pill-saiu        { background: #1a3a2a; color: var(--green); }
+    .pill-entregue    { background: #2a2a2a; color: #888; }
+    .pill-cancelado   { background: #3a1a1a; color: var(--accent); }
+
+    .pedido-itens { font-size: 0.85rem; color: var(--text2); margin-bottom: 12px; line-height: 1.6; }
+
+    .pedido-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .pedido-total { font-weight: 700; color: var(--green); font-size: 1.05rem; }
+    .pedido-tipo { font-size: 0.78rem; color: var(--text2); }
+
+    .pedido-acoes { display: flex; gap: 6px; margin-top: 12px; }
+
+    /* ---- TABELA DE CARDÁPIO ---- */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { text-align: left; padding: 10px 14px; color: var(--text2); font-size: 0.8rem; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    tr:hover td { background: var(--surface2); }
+
+    .disponivel-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .toggle {
+      width: 36px; height: 20px;
+      background: #333;
+      border-radius: 20px;
+      position: relative;
+      transition: background 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px; left: 3px;
+      transition: left 0.2s;
+    }
+    .toggle.on { background: var(--green); }
+    .toggle.on::after { left: 19px; }
+
+    /* ---- MODO ENTREGA ---- */
+    .modo-entrega-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+    .modo-entrega-card {
+      background: var(--surface); border: 2px solid var(--border);
+      border-radius: var(--radius); padding: 14px 10px;
+      text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .modo-entrega-card:hover { border-color: var(--accent); }
+    .modo-entrega-card.ativo { border-color: var(--accent); background: #fff5f5; }
+    .modo-entrega-card .modo-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .modo-entrega-card .modo-titulo { font-weight: 700; font-size: 0.85rem; }
+    .modo-entrega-card .modo-desc { font-size: 0.72rem; color: var(--text2); margin-top: 3px; }
+
+    /* ---- SEÇÃO CONFIGURAÇÕES ---- */
+    .config-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    .config-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .config-card h3 { font-size: 0.95rem; margin-bottom: 14px; color: var(--text2); }
+
+    /* ---- HORÁRIOS ---- */
+    .horario-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 0.88rem;
+    }
+    .horario-row .dia { width: 32px; font-weight: 600; }
+    .horario-row input[type="time"] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 5px 8px;
+      font-size: 0.85rem;
+    }
+
+    /* ---- NOTIF TOAST ---- */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s;
+      pointer-events: none;
+      max-width: 320px;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.ok  { border-left: 3px solid var(--green); }
+    #toast.err { border-left: 3px solid var(--accent); }
+
+    /* ---- MODAL CHAT ---- */
+    #modal-chat {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #modal-chat.aberto { display: flex; }
+    .chat-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .chat-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-header-info { display: flex; flex-direction: column; gap: 2px; }
+    .chat-header-nome { font-weight: 600; font-size: 1rem; }
+    .chat-header-num { font-size: 0.8rem; color: var(--text2); }
+    .chat-msgs {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .msg-bubble {
+      max-width: 80%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .msg-bubble.user {
+      background: var(--surface2);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .msg-bubble.assistant {
+      background: var(--accent);
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-bubble.owner {
+      background: #25D366;
+      color: #000;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-hora { font-size: 0.7rem; opacity: 0.6; margin-top: 2px; }
+    .chat-input-row {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+    .chat-input-row textarea {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      resize: none;
+      outline: none;
+      height: 44px;
+      max-height: 120px;
+      font-family: inherit;
+    }
+    .chat-input-row textarea:focus { border-color: var(--accent); }
+    .chat-footer {
+      padding: 8px 16px 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* ---- LOADING ---- */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .vazio {
+      text-align: center;
+      color: var(--text2);
+      padding: 60px 20px;
+      font-size: 0.95rem;
+    }
+    .vazio .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* ---- RESPONSIVO ---- */
+    @media (max-width: 600px) {
+      main { padding: 16px; }
+      header { padding: 0 16px; }
+      nav { padding: 0 8px; }
+      .pedidos-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="tela-login">
+  <div class="login-box">
+    <h1>🍕</h1>
+    <h1 style="margin-bottom:6px">Painel do Restaurante</h1>
+    <p>Acesse com as credenciais do seu estabelecimento</p>
+    <div class="field">
+      <label>Instance Name</label>
+      <input type="text" id="login-instance" placeholder="ex: bella_vista" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Senha</label>
+      <input type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn full" onclick="fazerLogin()">Entrar</button>
+    <div id="login-erro"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <span class="header-logo">⚡ <span id="marca-logo">ZapComanda</span></span>
+      <span class="header-nome" id="header-nome">Restaurante</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="status-badge" id="status-badge" onclick="toggleStatus()">Aberto</span>
+      <button class="btn sm ghost" onclick="logout()">Sair</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="nav-btn ativo" onclick="trocarAba('pedidos', this)">📦 Pedidos</button>
+    <button class="nav-btn" onclick="trocarAba('cardapio', this)">🍽️ Cardápio</button>
+    <button class="nav-btn" onclick="trocarAba('bairros', this)">🗺️ Entrega</button>
+    <button class="nav-btn" onclick="trocarAba('combos', this)">🎁 Combos</button>
+    <button class="nav-btn" onclick="trocarAba('adicionais', this)">➕ Adicionais</button>
+    <button class="nav-btn" onclick="trocarAba('config', this)">⚙️ Configurações</button>
+    <button class="nav-btn" id="nav-fila" onclick="trocarAba('fila', this)">🎧 Fila <span id="fila-badge" style="display:none;background:#e53e3e;color:#fff;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:4px">0</span></button>
+    <button class="nav-btn" id="nav-leads" onclick="trocarAba('leads', this)" style="display:none">🧲 Leads</button>
+  </nav>
+
+  <main>
+    <!-- ABA PEDIDOS -->
+    <div class="aba ativa" id="aba-pedidos">
+      <div class="cards-grid" id="stats-cards">
+        <div class="card-stat">
+          <div class="label">Pedidos hoje</div>
+          <div class="valor" id="stat-total">—</div>
+        </div>
+        <div class="card-stat">
+          <div class="label">Em produção</div>
+          <div class="valor amarelo" id="stat-producao">—</div>
+        </div>
+        <div class="card-stat">
+          <div class="label">Saiu p/ entrega</div>
+          <div class="valor verde" id="stat-saiu">—</div>
+        </div>
+        <div class="card-stat">
+          <div class="label">Faturamento hoje</div>
+          <div class="valor verde" id="stat-faturamento">—</div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="font-size:1.1rem">Pedidos ativos</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn sm ghost" onclick="carregarPedidos()">↻ Atualizar</button>
+          <button class="btn sm" style="background:#1a1a2e;color:#fff" onclick="abrirModalRota()">🛵 Iniciar Rota</button>
+        </div>
+      </div>
+
+      <!-- Modal Rota -->
+      <div id="modal-rota" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow-y:auto">
+        <div style="background:#fff;max-width:520px;margin:40px auto;border-radius:16px;padding:24px;position:relative">
+          <h3 style="margin-bottom:4px">🛵 Iniciar Rota de Entrega</h3>
+          <p style="font-size:13px;color:#666;margin-bottom:16px">Selecione os pedidos e defina a ordem arrastando. O motoboy pode mudar a ordem na hora.</p>
+
+          <div id="rota-pedidos-lista" style="margin-bottom:16px"></div>
+
+          <div style="margin-bottom:16px">
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">WhatsApp do Motoboy</label>
+            <input id="rota-motoboy-tel" type="tel" placeholder="66996270405 (com DDD, sem +55)"
+              style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px">
+          </div>
+
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn sm ghost" onclick="fecharModalRota()">Cancelar</button>
+            <button class="btn sm" style="background:#1a1a2e;color:#fff" onclick="enviarRota()">Enviar para Motoboy</button>
+          </div>
+          <button onclick="fecharModalRota()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#666">✕</button>
+        </div>
+      </div>
+
+      <div id="pedidos-lista">
+        <div class="vazio"><div class="spinner"></div><br>Carregando...</div>
+      </div>
+
+      <!-- HISTÓRICO -->
+      <div style="margin-top:32px;border-top:1px solid var(--border);padding-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <h2 style="font-size:1.1rem">📊 Histórico</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="hist-periodo" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-size:0.85rem" onchange="carregarHistorico()">
+              <option value="hoje">Hoje</option>
+              <option value="7d">Últimos 7 dias</option>
+              <option value="30d">Últimos 30 dias</option>
+              <option value="mes">Este mês</option>
+            </select>
+            <select id="hist-status" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-size:0.85rem" onchange="carregarHistorico()">
+              <option value="">Todos os status</option>
+              <option value="aguardando">Aguardando</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="em_producao">Em produção</option>
+              <option value="saiu">Saiu p/ entrega</option>
+              <option value="entregue">Entregue</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+        </div>
+        <div id="hist-resumo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px"></div>
+        <div id="hist-lista"></div>
+      </div>
+    </div>
+
+    <!-- ABA CARDÁPIO -->
+    <div class="aba" id="aba-cardapio">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <h2 style="font-size:1.1rem">Sabores / Produtos</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="filtro-categoria" onchange="filtrarCardapio()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:0.85rem">
+            <option value="">Todas as categorias</option>
+          </select>
+          <button class="btn sm green" onclick="adicionarSabor()">+ Sabor</button>
+          <button class="btn sm blue" onclick="adicionarProduto()">+ Produto</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Tipo</th>
+              <th>Disponível</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="cardapio-tbody">
+            <tr><td colspan="4"><div class="vazio"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ABA ENTREGA (BAIRROS) -->
+    <div class="aba" id="aba-bairros">
+      <h2 style="font-size:1.1rem;margin-bottom:16px">Zonas de Entrega</h2>
+
+      <!-- Seletor de modo -->
+      <div class="modo-entrega-cards">
+        <div class="modo-entrega-card" id="modo-card-distancia" onclick="trocarModoEntrega('distancia')">
+          <div class="modo-icon">📍</div>
+          <div class="modo-titulo">Por distância</div>
+          <div class="modo-desc">Taxa calculada pelo km</div>
+        </div>
+        <div class="modo-entrega-card" id="modo-card-bairros" onclick="trocarModoEntrega('bairros')">
+          <div class="modo-icon">📋</div>
+          <div class="modo-titulo">Por bairros</div>
+          <div class="modo-desc">Taxa fixa por região</div>
+        </div>
+        <div class="modo-entrega-card" id="modo-card-importar" onclick="trocarModoEntrega('importar')">
+          <div class="modo-icon">🗺️</div>
+          <div class="modo-titulo">Importar mapa</div>
+          <div class="modo-desc">Bairros via OpenStreetMap</div>
+        </div>
+      </div>
+
+      <!-- Painel: Por distância -->
+      <div id="painel-distancia" style="display:none">
+        <div class="field">
+          <label>Endereço do restaurante (para calcular distância)</label>
+          <input type="text" id="cfg-rest-geo" placeholder="Ex: Rua das Flores, 123, Centro, Rondonópolis MT">
+          <div style="font-size:0.78rem;margin-top:6px" id="cfg-coords-status"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field">
+            <label>Taxa por km (R$)</label>
+            <input type="number" id="cfg-taxa-km" step="0.50" min="0" placeholder="2.00">
+          </div>
+          <div class="field">
+            <label>Taxa mínima (R$)</label>
+            <input type="number" id="cfg-taxa-minima" step="0.50" min="0" placeholder="5.00">
+          </div>
+        </div>
+        <button class="btn sm" onclick="salvarEntregaDistancia()">Salvar e geocodificar</button>
+      </div>
+
+      <!-- Painel: Por bairros -->
+      <div id="painel-bairros" style="display:none">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button class="btn sm" onclick="abrirModalBairro()">+ Adicionar bairro</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Bairro / Região</th><th>Taxa</th><th>Disponível</th><th></th></tr>
+            </thead>
+            <tbody id="bairros-tbody">
+              <tr><td colspan="4"><div class="vazio"><div class="spinner"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Painel: Importar -->
+      <div id="painel-importar" style="display:none">
+        <div style="background:#f8f8f8;border-radius:var(--radius);padding:20px;text-align:center">
+          <div style="font-size:2rem;margin-bottom:10px">🗺️</div>
+          <p style="font-size:0.9rem;color:var(--text2);margin-bottom:16px">Importa automaticamente os bairros da sua cidade via OpenStreetMap.<br>Todos começam com taxa R$0,00 — edite depois.</p>
+          <button class="btn" onclick="importarBairrosEMudar()">📍 Importar bairros da cidade</button>
+          <p style="font-size:0.75rem;color:var(--text2);margin-top:10px">Certifique-se de que a cidade está cadastrada nas Configurações.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA COMBOS -->
+    <div class="aba" id="aba-combos">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="font-size:1.1rem">Combos e Promoções</h2>
+        <button class="btn sm" onclick="abrirModalCombo()">+ Criar combo</button>
+      </div>
+      <div id="combos-lista">
+        <div class="vazio"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- ABA ADICIONAIS -->
+    <div class="aba" id="aba-adicionais">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h2 style="font-size:1.1rem">Adicionais</h2>
+          <p style="font-size:0.82rem;color:var(--text2);margin-top:4px">Extras que o cliente pode adicionar ao pedido (queijo extra, bacon, batata palha…)</p>
+        </div>
+        <button class="btn sm" onclick="abrirModalAdicional()">+ Adicionar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Preço</th>
+              <th>Disponível</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="adicionais-tbody">
+            <tr><td colspan="4"><div class="vazio"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ABA CONFIGURAÇÕES -->
+    <div class="aba" id="aba-config">
+      <h2 style="font-size:1.1rem;margin-bottom:20px">Configurações do estabelecimento</h2>
+      <div class="config-grid">
+        <!-- Horários -->
+        <div class="config-card">
+          <h3>Horários de funcionamento</h3>
+          <div id="horarios-form">
+            <div class="vazio"><div class="spinner"></div></div>
+          </div>
+          <button class="btn sm" style="margin-top:14px" onclick="salvarHorarios()">Salvar horários</button>
+        </div>
+
+        <!-- Entrega -->
+        <div class="config-card">
+          <h3>Configurações de entrega</h3>
+          <div class="field">
+            <label>Pedido mínimo (R$)</label>
+            <input type="number" id="cfg-pedido-minimo" step="0.01" min="0" placeholder="30.00">
+          </div>
+          <div class="field">
+            <label>Tempo estimado entrega</label>
+            <input type="text" id="cfg-tempo-entrega" placeholder="40-60 minutos">
+          </div>
+          <div class="field">
+            <label>Tempo estimado retirada</label>
+            <input type="text" id="cfg-tempo-retirada" placeholder="20-25 minutos">
+          </div>
+          <button class="btn sm" onclick="salvarEntrega()">Salvar</button>
+        </div>
+
+        <!-- Notificações -->
+        <div class="config-card">
+          <h3>Notificações WhatsApp</h3>
+          <div class="field">
+            <label>Número do caixa (com DDI)</label>
+            <input type="text" id="cfg-notif-caixa" placeholder="5565999999999">
+          </div>
+          <div class="field">
+            <label>Número da cozinha (opcional)</label>
+            <input type="text" id="cfg-notif-cozinha" placeholder="5565999999999">
+          </div>
+          <button class="btn sm" onclick="salvarNotificacoes()">Salvar</button>
+        </div>
+
+        <!-- Pagamento -->
+        <div class="config-card">
+          <h3>Formas de pagamento</h3>
+          <div class="field">
+            <label>Liste as formas aceitas</label>
+            <input type="text" id="cfg-pagamento" placeholder="Pix, dinheiro, cartão...">
+          </div>
+          <div class="field">
+            <label>Endereço do estabelecimento</label>
+            <input type="text" id="cfg-endereco" placeholder="Rua, número, bairro">
+          </div>
+          <div class="field">
+            <label>Cidade</label>
+            <input type="text" id="cfg-cidade" placeholder="Ex: Rondonópolis">
+          </div>
+          <button class="btn sm" onclick="salvarPagamento()">Salvar</button>
+        </div>
+
+        <!-- Instruções da IA -->
+        <div class="config-card" style="grid-column: 1 / -1">
+          <h3>🤖 Instruções da IA (atendente virtual)</h3>
+          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:14px">Descreva seu negócio em linguagem natural e clique em <strong>Gerar com IA</strong>. A IA cria as instruções completas automaticamente para você revisar e salvar.</p>
+
+          <div class="field" style="margin-bottom:10px">
+            <label style="font-size:0.8rem;color:var(--text2);margin-bottom:6px;display:block">1. Descreva seu negócio (pode ser bem simples):</label>
+            <textarea id="cfg-descricao-negocio" rows="4"
+              placeholder="Exemplo: Somos a Pizzaria Bella Vista. Fazemos rodízio de pizza às sextas, sábados e domingos das 18h às 22h, valor R$34,90 por pessoa. Crianças até 10 anos pagam metade. Também fazemos delivery e retirada. Para reservar precisamos do nome, data, horário, quantidade de pessoas e celular."
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:12px;font-size:0.88rem;resize:vertical;line-height:1.5"></textarea>
+          </div>
+          <button class="btn sm" id="btn-gerar-ia" onclick="gerarPromptIA()" style="margin-bottom:18px">✨ Gerar com IA</button>
+
+          <hr style="border:none;border-top:1px solid var(--border);margin-bottom:16px">
+
+          <div class="field">
+            <label style="font-size:0.8rem;color:var(--text2);margin-bottom:6px;display:block">2. Instruções geradas — revise e salve:</label>
+            <textarea id="cfg-prompt-ia" rows="10"
+              placeholder="Clique em 'Gerar com IA' para criar automaticamente, ou cole suas instruções aqui manualmente."
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:12px;font-size:0.88rem;resize:vertical;line-height:1.5"></textarea>
+          </div>
+          <button class="btn sm" onclick="salvarPromptIA()">Salvar instruções</button>
+        </div>
+
+        <!-- Evolution API (notificações de status) -->
+        <div class="config-card">
+          <h3>📱 Notificações de status ao cliente</h3>
+          <p style="font-size:0.8rem;color:var(--text2);margin-bottom:14px">Quando você avança o status do pedido (confirmado, em produção, saiu, entregue), o cliente recebe uma mensagem automática no WhatsApp.</p>
+          <div class="field">
+            <label>URL da Evolution API</label>
+            <input type="text" id="cfg-evolution-url" placeholder="http://31.97.20.179:8080">
+          </div>
+          <div class="field">
+            <label>API Key da instância</label>
+            <input type="text" id="cfg-evolution-apikey" placeholder="bella_vista_secret_2024">
+          </div>
+          <button class="btn sm" onclick="salvarEvolution()">Salvar</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ABA FILA DE ATENDIMENTO -->
+    <div class="aba" id="aba-fila">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="font-size:1.1rem">Fila de Atendimento Humano</h2>
+        <button class="btn sm ghost" onclick="carregarFila()">↻ Atualizar</button>
+      </div>
+      <div id="fila-lista">
+        <div class="vazio"><div class="spinner"></div><br>Carregando...</div>
+      </div>
+    </div>
+
+    <!-- ABA LEADS (só admin Hallogenic vê) -->
+    <div class="aba" id="aba-leads">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h2 style="font-size:1.1rem">Leads — cadastros do site</h2>
+        <button class="btn sm ghost" onclick="carregarLeads()">↻ Atualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Restaurante</th>
+              <th>Tipo</th>
+              <th>Responsável</th>
+              <th>WhatsApp</th>
+              <th>Plano</th>
+              <th>Status</th>
+              <th>Data</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="leads-tbody">
+            <tr><td colspan="8"><div class="vazio"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+// ⬇ Troque aqui quando definir o nome da marca
+const MARCA = 'ZapComanda';
+document.getElementById('marca-logo').textContent = MARCA;
+
+const SUPABASE_URL = 'https://ukyalvcrtanuvldilbdb.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVreWFsdmNydGFudXZsZGlsYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NDIzOTksImV4cCI6MjA5MTUxODM5OX0.5lXRGURsAQ5ubvmoWsmgjpw6hyYAtffTmMkZU4eX21Y';
+
+let NEGOCIO = null;       // dados do negócio logado
+let AUTO_REFRESH = null;  // intervalo de refresh
+let _pedidosConhecidos = null; // Set de IDs já vistos — null = primeira carga
+let _filaCount = null;        // null = primeira carga da fila
+window._pauseState = {};      // { numero_whatsapp: true/false } — estado ia_pausada por cliente
+
+// ============================================================
+// API HELPERS
+// ============================================================
+async function sbGet(tabela, params = {}) {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${tabela}`);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const r = await fetch(url, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Accept: 'application/json' }
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbPatch(tabela, filtros, dados) {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${tabela}`);
+  Object.entries(filtros).forEach(([k, v]) => url.searchParams.set(k, v));
+  const r = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal'
+    },
+    body: JSON.stringify(dados)
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+async function sbPost(tabela, dados) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${tabela}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation'
+    },
+    body: JSON.stringify(dados)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function sbDelete(tabela, filtros) {
+  const url = new URL(`${SUPABASE_URL}/rest/v1/${tabela}`);
+  Object.entries(filtros).forEach(([k, v]) => url.searchParams.set(k, v));
+  const r = await fetch(url, {
+    method: 'DELETE',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'return=minimal' }
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+async function fazerLogin() {
+  const instance = document.getElementById('login-instance').value.trim();
+  const senha    = document.getElementById('login-senha').value;
+  const erro     = document.getElementById('login-erro');
+  erro.textContent = '';
+
+  if (!instance) { erro.textContent = 'Informe o nome da instância.'; return; }
+
+  try {
+    const negocios = await sbGet('negocios', { instance_name: `eq.${instance}`, select: '*' });
+    if (!negocios.length) { erro.textContent = 'Estabelecimento não encontrado.'; return; }
+
+    const neg = negocios[0];
+    // Senha simples: instance_name + "2024" (troque por bcrypt real no futuro)
+    const senhaCorreta = neg.senha_painel || (instance + '2024');
+    if (senha !== senhaCorreta) { erro.textContent = 'Senha incorreta.'; return; }
+
+    NEGOCIO = neg;
+    localStorage.setItem('zc_instance', neg.instance_name);
+    localStorage.setItem('zc_senha', senha);
+    iniciarApp();
+  } catch (e) {
+    erro.textContent = 'Erro ao conectar. Tente novamente.';
+  }
+}
+
+document.getElementById('login-instance').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-senha').focus(); });
+document.getElementById('login-senha').addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
+
+function logout() {
+  localStorage.removeItem('zc_instance');
+  localStorage.removeItem('zc_senha');
+  clearInterval(AUTO_REFRESH);
+  clearInterval(FILA_POLL);
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('tela-login').style.display = 'flex';
+  NEGOCIO = null;
+}
+
+// ============================================================
+// AVISO SONORO
+// ============================================================
+function tocarBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Dois beeps curtos
+    [0, 0.25].forEach(offset => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + offset);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.18);
+    });
+  } catch(e) { /* navegador sem Web Audio API */ }
+}
+
+// ============================================================
+// INICIAR APP
+// ============================================================
+const ADMIN_INSTANCE = 'hallogenic'; // login admin: ver todos os leads
+
+function iniciarApp() {
+  document.getElementById('tela-login').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('header-nome').textContent = NEGOCIO.nome;
+  atualizarBadgeStatus();
+  _pedidosConhecidos = null; // reseta ao logar para não tocar na primeira carga
+  _filaCount = null;
+
+  // Pede permissão de notificação push
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // Aba Leads visível só para o admin Hallogenic
+  if (NEGOCIO.instance_name === ADMIN_INSTANCE) {
+    document.getElementById('nav-leads').style.display = '';
+  }
+
+  carregarPedidos();
+  carregarHistorico();
+  AUTO_REFRESH = setInterval(carregarPedidos, 30000);
+  FILA_POLL = setInterval(verificarFilaBackground, 10000);
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+function trocarAba(id, btn) {
+  document.querySelectorAll('.aba').forEach(a => a.classList.remove('ativa'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('ativo'));
+  document.getElementById('aba-' + id).classList.add('ativa');
+  btn.classList.add('ativo');
+
+  clearInterval(AUTO_REFRESH);
+  if (id === 'pedidos') {
+    carregarPedidos();
+    carregarHistorico();
+    AUTO_REFRESH = setInterval(carregarPedidos, 30000);
+  } else if (id === 'cardapio') {
+    carregarCardapio();
+  } else if (id === 'bairros') {
+    carregarBairros();
+  } else if (id === 'combos') {
+    carregarCombos();
+  } else if (id === 'adicionais') {
+    carregarAdicionais();
+  } else if (id === 'config') {
+    carregarConfig();
+  } else if (id === 'leads') {
+    carregarLeads();
+  } else if (id === 'fila') {
+    carregarFila();
+    AUTO_REFRESH = setInterval(carregarFila, 20000);
+  }
+}
+
+// ============================================================
+// PEDIDOS
+// ============================================================
+async function carregarPedidos() {
+  try {
+    const hoje = new Date().toISOString().split('T')[0];
+    const pedidos = await sbGet('pedidos', {
+      negocio_id: `eq.${NEGOCIO.id}`,
+      criado_em: `gte.${hoje}T00:00:00`,
+      order: 'criado_em.desc',
+      select: '*'
+    });
+
+    const ativos   = pedidos.filter(p => !['entregue','cancelado'].includes(p.status));
+    const producao = pedidos.filter(p => p.status === 'em_producao').length;
+    const saiu     = pedidos.filter(p => p.status === 'saiu').length;
+    const fat      = pedidos.filter(p => p.status !== 'cancelado').reduce((s, p) => s + parseFloat(p.total || 0), 0);
+
+    document.getElementById('stat-total').textContent       = pedidos.length;
+    document.getElementById('stat-producao').textContent    = producao;
+    document.getElementById('stat-saiu').textContent        = saiu;
+    document.getElementById('stat-faturamento').textContent = 'R$ ' + fat.toFixed(2).replace('.', ',');
+
+    // Aviso sonoro: detecta pedidos novos após primeira carga
+    const idsAtuais = new Set(pedidos.map(p => p.id));
+    if (_pedidosConhecidos !== null) {
+      const novos = pedidos.filter(p => !_pedidosConhecidos.has(p.id) && ['aguardando', 'confirmado'].includes(p.status));
+      if (novos.length > 0) {
+        tocarBeep();
+        document.title = `🔴 ${novos.length} novo(s) pedido(s) — ZapComanda`;
+        setTimeout(() => { document.title = 'ZapComanda — Painel'; }, 8000);
+        if (Notification.permission === 'granted') {
+          new Notification('🍕 Novo pedido!', {
+            body: `${novos.length} novo(s) pedido(s) aguardando confirmação`,
+            icon: ''
+          });
+        }
+      }
+    }
+    _pedidosConhecidos = idsAtuais;
+
+    window._pedidosAtivos = pedidos; // guarda em memória para notificações
+
+    // Carrega estado ia_pausada para cada cliente ativo
+    const nums = [...new Set(ativos.map(p => p.numero_whatsapp).filter(Boolean))];
+    if (nums.length) {
+      try {
+        const clientes = await sbGet('clientes_finais', {
+          negocio_id: `eq.${NEGOCIO.id}`,
+          numero_whatsapp: `in.(${nums.join(',')})`,
+          select: 'numero_whatsapp,ia_pausada'
+        });
+        window._pauseState = {};
+        clientes.forEach(c => { window._pauseState[c.numero_whatsapp] = !!c.ia_pausada; });
+      } catch(e) { /* ignora — botão inicia como "Pausar IA" */ }
+    }
+
+    // Atualiza badge da fila mesmo estando na aba pedidos
+    try {
+      const naFila = await sbGet('clientes_finais', { negocio_id: `eq.${NEGOCIO.id}`, ia_pausada: 'eq.true', select: 'numero_whatsapp' });
+      const badge = document.getElementById('fila-badge');
+      if (naFila.length > 0) { badge.textContent = naFila.length; badge.style.display = 'inline'; }
+      else { badge.style.display = 'none'; }
+    } catch(e) {}
+
+    const lista = document.getElementById('pedidos-lista');
+    if (!ativos.length) {
+      lista.innerHTML = '<div class="vazio"><div class="icon">📭</div>Nenhum pedido ativo no momento</div>';
+      return;
+    }
+    lista.innerHTML = '<div class="pedidos-grid">' + ativos.map(renderPedido).join('') + '</div>';
+  } catch (e) {
+    document.getElementById('pedidos-lista').innerHTML = `<div class="vazio" style="color:var(--accent)">❌ Erro ao carregar pedidos<br><small style="color:var(--text2)">${e.message}</small></div>`;
+  }
+}
+
+function renderPedido(p) {
+  const hora  = new Date(p.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const total = 'R$ ' + parseFloat(p.total || 0).toFixed(2).replace('.', ',');
+  const isEntrega = p.tipo_entrega === 'entrega';
+  const tipo  = isEntrega ? '🛵 Delivery' : '🏪 Retirar na loja';
+  const num   = String(p.id).slice(-4).toUpperCase();
+
+  const itensHtml = (p.itens || []).map(i => {
+    if (i.tipo === 'pizza') {
+      const sabs = (i.sabores || []).join(', ');
+      const borda = i.borda ? ` + borda ${i.borda}` : '';
+      return `• ${i.qty || i.quantidade || 1}x Pizza ${i.tamanho} (${sabs}${borda})`;
+    }
+    return `• ${i.qty || i.quantidade || 1}x ${i.nome}`;
+  }).join('<br>');
+
+  const proxStatus = { aguardando: 'confirmado', confirmado: 'em_producao', em_producao: 'saiu', saiu: 'entregue' };
+  const proxLabel  = { aguardando: '✓ Confirmar', confirmado: '👨‍🍳 Em produção', em_producao: '🛵 Saiu', saiu: '✅ Entregue' };
+
+  const btnProx = proxStatus[p.status]
+    ? `<button class="btn sm green" onclick="atualizarStatus('${p.id}','${proxStatus[p.status]}')">${proxLabel[p.status]}</button>` : '';
+
+  const btnCancelar = ['aguardando','confirmado'].includes(p.status)
+    ? `<button class="btn sm ghost" onclick="cancelarPedido('${p.id}')">Cancelar</button>` : '';
+
+  const pausada = window._pauseState?.[p.numero_whatsapp] || false;
+  const btnPausa = p.numero_whatsapp
+    ? `<button class="btn sm ${pausada ? 'orange' : 'ghost'}" onclick="toggleIaPausada('${p.numero_whatsapp}', this)">${pausada ? '▶ Retomar IA' : '⏸ Pausar IA'}</button>`
+    : '';
+
+  const endJson = p.endereco_entrega || {};
+  const obsTexto = p.observacao || (p.itens || []).find(i => i.observacao_geral)?.observacao_geral || '';
+  const obsHtml = obsTexto ? `<div style="font-size:0.78rem;color:var(--yellow);margin-top:4px">💬 ${obsTexto}</div>` : '';
+  const enderecoHtml = isEntrega
+    ? `<div style="font-size:0.78rem;color:var(--blue);margin-top:4px">📍 ${endJson.bairro || ''}${endJson.rua ? ' — ' + endJson.rua : ''}${p.taxa_entrega ? ' · Taxa: R$ ' + parseFloat(p.taxa_entrega).toFixed(2).replace('.',',') : ''}</div>`
+    : '';
+  const pagamentoHtml = p.forma_pagamento ? `<div style="font-size:0.78rem;color:var(--text2);margin-top:4px">💳 ${p.forma_pagamento}</div>` : '';
+
+  return `
+    <div class="pedido-card ${p.status}" id="pedido-${p.id}">
+      <div class="pedido-header">
+        <div>
+          <div class="pedido-num">#${num}</div>
+          <div class="pedido-nome">${p.nome_cliente || '—'}</div>
+          <div class="pedido-hora">${hora} · 📱 ${p.numero_whatsapp || ''}</div>
+        </div>
+        <span class="status-pill pill-${p.status}">${traduzStatus(p.status)}</span>
+      </div>
+      <div class="pedido-itens">${itensHtml || 'Sem itens'}${enderecoHtml}${pagamentoHtml}${obsHtml}</div>
+      <div class="pedido-footer">
+        <div>
+          <div class="pedido-total">${total}</div>
+          <div class="pedido-tipo">${tipo}</div>
+        </div>
+      </div>
+      <div class="pedido-acoes">${btnProx}${btnCancelar}${btnPausa}</div>
+    </div>`;
+}
+
+function traduzStatus(s) {
+  return { aguardando: 'Aguardando', confirmado: 'Confirmado', em_producao: 'Em produção',
+           saiu: 'Saiu p/ entrega', entregue: 'Entregue', cancelado: 'Cancelado' }[s] || s;
+}
+
+async function toggleIaPausada(numero, btnEl) {
+  const atual = window._pauseState?.[numero] || false;
+  const novoEstado = !atual;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/clientes_finais?negocio_id=eq.${NEGOCIO.id}&numero_whatsapp=eq.${numero}`, {
+      method: 'PATCH',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ ia_pausada: novoEstado, ia_pausada_em: novoEstado ? new Date().toISOString() : null })
+    });
+    window._pauseState[numero] = novoEstado;
+    btnEl.textContent = novoEstado ? '▶ Retomar IA' : '⏸ Pausar IA';
+    btnEl.className = `btn sm ${novoEstado ? 'orange' : 'ghost'}`;
+    toast(novoEstado ? '⏸ IA pausada para este cliente' : '▶ IA retomada', novoEstado ? 'warn' : 'ok');
+  } catch (e) { toast('Erro ao alterar estado da IA', 'err'); }
+}
+
+async function atualizarStatus(id, novoStatus) {
+  try {
+    await sbPatch('pedidos', { id: `eq.${id}` }, { status: novoStatus, atualizado_em: new Date().toISOString() });
+    notificarClienteStatus(id, novoStatus); // antes de recarregar para usar _pedidosAtivos atual
+    carregarPedidos();
+    toast('Status atualizado!', 'ok');
+  } catch (e) {
+    toast('Erro ao atualizar status', 'err');
+  }
+}
+
+async function notificarClienteStatus(pedidoId, novoStatus) {
+  const msgs = {
+    confirmado:  'Boa notícia! 🎉 Seu pedido foi confirmado e já entrou na fila!',
+    em_producao: 'Sua pizza já está em produção! 🍕😊 Estamos preparando com muito carinho!',
+    saiu:        'Opa! Sua pizza já saiu pra entrega! 🛵😄 Chegando em breve!',
+    entregue:    'Pedido entregue! 😋✅ Bom apetite e obrigado pela preferência!'
+  };
+  const texto = msgs[novoStatus];
+  if (!texto) return;
+
+  const pedido = (window._pedidosAtivos || []).find(p => p.id === pedidoId);
+  if (!pedido?.numero_whatsapp) return;
+
+  const m = NEGOCIO.modulos || {};
+  const evolutionApikey = m.evolution_apikey || '';
+  const evolutionInstance = m.evolution_instance || NEGOCIO.instance_name || '';
+  if (!evolutionApikey) return;
+
+  const nome = pedido.nome_cliente ? `${pedido.nome_cliente}, ` : '';
+
+  try {
+    await fetch('https://n8n.hallogenic.com.br/webhook/send-whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instance: evolutionInstance,
+        apikey: evolutionApikey,
+        number: pedido.numero_whatsapp + '@s.whatsapp.net',
+        text: `${nome}${texto}`
+      })
+    });
+  } catch (e) {}
+}
+
+async function cancelarPedido(id) {
+  if (!confirm('Cancelar este pedido?')) return;
+  try {
+    await sbPatch('pedidos', { id: `eq.${id}` }, { status: 'cancelado', atualizado_em: new Date().toISOString() });
+    toast('Pedido cancelado', 'ok');
+    carregarPedidos();
+  } catch (e) {
+    toast('Erro ao cancelar pedido', 'err');
+  }
+}
+
+// ============================================================
+// ROTA DE ENTREGA
+// ============================================================
+function abrirModalRota() {
+  const pedidos = window._pedidosAtivos || [];
+  const entregaveis = pedidos.filter(p => ['confirmado','em_producao','saiu'].includes(p.status));
+  const lista = document.getElementById('rota-pedidos-lista');
+
+  if (!entregaveis.length) {
+    toast('Nenhum pedido disponível para rota', 'err');
+    return;
+  }
+
+  lista.innerHTML = entregaveis.map((p, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #eee;border-radius:10px;margin-bottom:8px;background:#fafafa" id="rota-item-${p.id}">
+      <input type="checkbox" id="rota-chk-${p.id}" value="${p.id}" checked style="width:18px;height:18px;cursor:pointer">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${p.nome_cliente || 'Cliente'}</div>
+        <div style="font-size:12px;color:#666">${[p.endereco, p.bairro].filter(Boolean).join(' — ') || 'Retirada'}</div>
+      </div>
+      <div style="display:flex;gap:4px">
+        <button onclick="moverRota('${p.id}',-1)" style="background:#eee;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:16px">↑</button>
+        <button onclick="moverRota('${p.id}',1)"  style="background:#eee;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:16px">↓</button>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('rota-motoboy-tel').value = '';
+  document.getElementById('modal-rota').style.display = 'block';
+}
+
+function moverRota(id, dir) {
+  const lista = document.getElementById('rota-pedidos-lista');
+  const item  = document.getElementById(`rota-item-${id}`);
+  if (!item) return;
+  if (dir === -1 && item.previousElementSibling) {
+    lista.insertBefore(item, item.previousElementSibling);
+  } else if (dir === 1 && item.nextElementSibling) {
+    lista.insertBefore(item.nextElementSibling, item);
+  }
+}
+
+function fecharModalRota() {
+  document.getElementById('modal-rota').style.display = 'none';
+}
+
+async function enviarRota() {
+  const items = document.querySelectorAll('#rota-pedidos-lista [id^="rota-item-"]');
+  const selecionados = Array.from(items)
+    .map(el => el.id.replace('rota-item-',''))
+    .filter(id => document.getElementById(`rota-chk-${id}`)?.checked);
+
+  if (!selecionados.length) { toast('Selecione ao menos um pedido', 'err'); return; }
+
+  let tel = document.getElementById('rota-motoboy-tel').value.replace(/\D/g,'');
+  if (!tel || tel.length < 10) { toast('Informe o WhatsApp do motoboy', 'err'); return; }
+  if (!tel.startsWith('55')) tel = '55' + tel;
+
+  const instancia = NEGOCIO?.instance_name || '';
+  const rotaUrl   = `https://master.zapcomanda-rota.pages.dev?pedidos=${selecionados.join(',')}&instance=${instancia}`;
+  const msg       = `🛵 Rota de entrega:\n${rotaUrl}`;
+
+  try {
+    await fetch('https://n8n.hallogenic.com.br/webhook/send-whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instance: instancia,
+        apikey: NEGOCIO?.modulos?.evolution_apikey || '',
+        number: tel + '@s.whatsapp.net',
+        text: msg
+      })
+    });
+    fecharModalRota();
+    toast('Rota enviada para o motoboy! 🛵', 'ok');
+  } catch(e) {
+    toast('Erro ao enviar. Copie o link manualmente.', 'err');
+    prompt('Link da rota (copie e envie manualmente):', rotaUrl);
+  }
+}
+
+// ============================================================
+// STATUS DO BOT (aberto/fechado)
+// ============================================================
+function atualizarBadgeStatus() {
+  const badge = document.getElementById('status-badge');
+  const aberto = NEGOCIO.ativo;
+  badge.textContent = aberto ? 'Aberto' : 'Fechado';
+  badge.className = 'status-badge ' + (aberto ? 'aberto' : 'fechado');
+}
+
+async function toggleStatus() {
+  const novoStatus = !NEGOCIO.ativo;
+  try {
+    await sbPatch('negocios', { id: `eq.${NEGOCIO.id}` }, { ativo: novoStatus });
+    NEGOCIO.ativo = novoStatus;
+    atualizarBadgeStatus();
+    toast(novoStatus ? 'Bot ativado — recebendo pedidos' : 'Bot pausado — não aceita pedidos', 'ok');
+  } catch (e) {
+    toast('Erro ao alterar status', 'err');
+  }
+}
+
+async function carregarHistorico() {
+  const periodo = document.getElementById('hist-periodo')?.value || 'hoje';
+  const status  = document.getElementById('hist-status')?.value  || '';
+  const agora   = new Date();
+  let dataInicio;
+  if (periodo === 'hoje') {
+    dataInicio = agora.toISOString().split('T')[0] + 'T00:00:00';
+  } else if (periodo === '7d') {
+    const d = new Date(agora); d.setDate(d.getDate() - 7); dataInicio = d.toISOString();
+  } else if (periodo === '30d') {
+    const d = new Date(agora); d.setDate(d.getDate() - 30); dataInicio = d.toISOString();
+  } else {
+    dataInicio = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-01T00:00:00`;
+  }
+  const params = { negocio_id: `eq.${NEGOCIO.id}`, criado_em: `gte.${dataInicio}`, order: 'criado_em.desc', select: '*', limit: 200 };
+  if (status) params.status = `eq.${status}`;
+  try {
+    const pedidos = await sbGet('pedidos', params);
+    const total   = pedidos.length;
+    const entregues  = pedidos.filter(p => p.status === 'entregue').length;
+    const cancelados = pedidos.filter(p => p.status === 'cancelado').length;
+    const fat = pedidos.filter(p => p.status !== 'cancelado').reduce((s,p) => s + parseFloat(p.total||0), 0);
+    const ticket = entregues > 0 ? fat / entregues : 0;
+    const resumoEl = document.getElementById('hist-resumo');
+    if (resumoEl) resumoEl.innerHTML = `
+      <div class="card-stat"><div class="label">Total</div><div class="valor">${total}</div></div>
+      <div class="card-stat"><div class="label">Entregues</div><div class="valor verde">${entregues}</div></div>
+      <div class="card-stat"><div class="label">Cancelados</div><div class="valor" style="color:var(--accent)">${cancelados}</div></div>
+      <div class="card-stat"><div class="label">Faturamento</div><div class="valor verde">R$\xa0${fat.toFixed(2).replace('.',',')}</div></div>
+      <div class="card-stat"><div class="label">Ticket médio</div><div class="valor">${ticket ? 'R$\xa0'+ticket.toFixed(2).replace('.',',') : '—'}</div></div>`;
+    const listaEl = document.getElementById('hist-lista');
+    if (!listaEl) return;
+    if (!pedidos.length) { listaEl.innerHTML = '<div class="vazio">Nenhum pedido no período</div>'; return; }
+    const stLabel = { aguardando:'Aguardando', confirmado:'Confirmado', em_producao:'Em produção', saiu:'Saiu', entregue:'Entregue', cancelado:'Cancelado' };
+    const stColor = { aguardando:'var(--yellow)', confirmado:'var(--blue)', em_producao:'var(--orange)', saiu:'var(--blue)', entregue:'var(--green)', cancelado:'var(--accent)' };
+    listaEl.innerHTML = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+      <thead><tr style="border-bottom:1px solid var(--border);color:var(--text2)">
+        <th style="text-align:left;padding:8px 10px;font-weight:600">Data/Hora</th>
+        <th style="text-align:left;padding:8px 10px;font-weight:600">Cliente</th>
+        <th style="text-align:left;padding:8px 10px;font-weight:600">Tipo</th>
+        <th style="text-align:right;padding:8px 10px;font-weight:600">Total</th>
+        <th style="text-align:center;padding:8px 10px;font-weight:600">Status</th>
+      </tr></thead><tbody>
+      ${pedidos.map(p => {
+        const dt = new Date(p.criado_em);
+        const dtStr = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        const tipo = p.tipo_entrega === 'retirada' ? '🏃 Retirada' : '🛵 Delivery';
+        const st = stLabel[p.status] || p.status;
+        const cor = stColor[p.status] || 'var(--text2)';
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 10px;color:var(--text2);white-space:nowrap">${dtStr}</td>
+          <td style="padding:8px 10px">${p.nome_cliente || '—'}</td>
+          <td style="padding:8px 10px">${tipo}</td>
+          <td style="padding:8px 10px;text-align:right;color:var(--green);font-weight:600">R$\xa0${parseFloat(p.total||0).toFixed(2).replace('.',',')}</td>
+          <td style="padding:8px 10px;text-align:center"><span style="color:${cor};font-size:0.8rem;font-weight:600">${st}</span></td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  } catch(e) {
+    const listaEl = document.getElementById('hist-lista');
+    if (listaEl) listaEl.innerHTML = '<div class="vazio" style="color:var(--accent)">Erro ao carregar histórico</div>';
+  }
+}
+
+// ============================================================
+// CARDÁPIO
+// ============================================================
+async function carregarCardapio() {
+  try {
+    // Busca sabores + produtos
+    const [sabores, produtos, categorias] = await Promise.all([
+      sbGet('sabores', { negocio_id: `eq.${NEGOCIO.id}`, select: '*', order: 'nome.asc' }),
+      sbGet('produtos', { negocio_id: `eq.${NEGOCIO.id}`, select: '*', order: 'codigo.asc' }),
+      sbGet('categorias', { negocio_id: `eq.${NEGOCIO.id}`, select: '*', order: 'ordem.asc' })
+    ]);
+
+    // Popula filtro
+    const sel = document.getElementById('filtro-categoria');
+    sel.innerHTML = '<option value="">Todas as categorias</option>';
+    categorias.forEach(c => {
+      sel.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+    });
+
+    // Mapeia categorias
+    const catMap = {};
+    categorias.forEach(c => catMap[c.id] = c.nome);
+
+    // Junta sabores e produtos
+    const itens = [
+      ...sabores.map(s => ({ ...s, _tipo: 'sabor' })),
+      ...produtos.map(p => ({ ...p, _tipo: 'produto' }))
+    ];
+
+    window._cardapioItens = itens;
+    window._catMap = catMap;
+    renderCardapioTabela(itens, catMap);
+  } catch (e) {
+    toast('Erro ao carregar cardápio', 'err');
+  }
+}
+
+function filtrarCardapio() {
+  const cat = document.getElementById('filtro-categoria').value;
+  const itens = cat
+    ? window._cardapioItens.filter(i => i.categoria_id === cat)
+    : window._cardapioItens;
+  renderCardapioTabela(itens, window._catMap);
+}
+
+function renderCardapioTabela(itens, catMap) {
+  const tbody = document.getElementById('cardapio-tbody');
+  if (!itens.length) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="vazio">Nenhum item encontrado</div></td></tr>';
+    return;
+  }
+
+  // Agrupar por categoria
+  const groups = {};
+  const groupOrder = [];
+  itens.forEach(item => {
+    const k = item.categoria_id || '__sem__';
+    if (!groups[k]) { groups[k] = []; groupOrder.push(k); }
+    groups[k].push(item);
+  });
+
+  let rows = '';
+  const bgPar = 'var(--surface)';
+  const bgImpar = 'var(--surface2)';
+
+  groupOrder.forEach((catKey, gi) => {
+    const catNome = catKey === '__sem__' ? 'Sem categoria' : (catMap[catKey] || '—');
+    const group = groups[catKey];
+    const bgCat = gi % 2 === 0 ? '#1c1c1c' : '#212121';
+
+    rows += `<tr style="background:#252525">
+      <td colspan="4" style="font-size:0.75rem;font-weight:700;color:var(--accent);padding:7px 14px;text-transform:uppercase;letter-spacing:0.6px">
+        ${catNome} <span style="color:var(--text2);font-weight:400;text-transform:none">(${group.length})</span>
+      </td>
+    </tr>`;
+
+    group.forEach((item, ii) => {
+      const tipo = item._tipo === 'sabor' ? '<small style="color:#6b9fd4">Sabor</small>' : '<small style="color:#8bc48a">Produto</small>';
+      const on = item.disponivel ? 'on' : '';
+      const bg = ii % 2 === 0 ? bgPar : bgImpar;
+      rows += `
+        <tr style="background:${bg}">
+          <td style="display:flex;align-items:center;gap:10px">
+            ${item.foto_url ? `<img src="${item.foto_url}" style="width:38px;height:38px;object-fit:cover;border-radius:6px;flex-shrink:0">` : `<div style="width:38px;height:38px;background:#2a2a2a;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem">${item._tipo === 'sabor' ? '🍕' : '🥤'}</div>`}
+            <div class="item-nome-txt">${item.destaque ? '<span style="color:#f1c40f;margin-right:3px">⭐</span>' : ''}${item.nome}${item.descricao ? `<br><small style="color:var(--text2)">${item.descricao}</small>` : ''}</div>
+          </td>
+          <td>${tipo}</td>
+          <td><button class="toggle ${on}" onclick="toggleDisponivel('${item._tipo}','${item.id}',this)"></button></td>
+          <td>
+            <div style="display:flex;gap:5px">
+              <button class="btn sm ghost" onclick="toggleDestaque('${item._tipo}','${item.id}',this)" title="${item.destaque ? 'Remover destaque' : 'Marcar destaque'}" style="color:${item.destaque ? '#f1c40f' : 'var(--text2)'}">⭐</button>
+              <button class="btn sm ghost" onclick="editarItem('${item._tipo}','${item.id}')" title="Editar">✏️</button>
+              <button class="btn sm ghost" style="color:var(--accent)" onclick="removerItem('${item._tipo}','${item.id}')" title="Remover">🗑</button>
+            </div>
+          </td>
+        </tr>`;
+    });
+  });
+
+  tbody.innerHTML = rows;
+}
+
+async function toggleDisponivel(tipo, id, btn) {
+  const novoValor = !btn.classList.contains('on');
+  const tabela = tipo === 'sabor' ? 'sabores' : 'produtos';
+  try {
+    await sbPatch(tabela, { id: `eq.${id}` }, { disponivel: novoValor });
+    btn.classList.toggle('on', novoValor);
+    toast(novoValor ? 'Item ativado' : 'Item desativado', 'ok');
+  } catch (e) {
+    toast('Erro ao alterar item', 'err');
+  }
+}
+
+async function toggleDestaque(tipo, id, btn) {
+  const item = (window._cardapioItens || []).find(i => i.id == id && i._tipo === tipo);
+  if (!item) return;
+  const novoValor = !item.destaque;
+  const tabela = tipo === 'sabor' ? 'sabores' : 'produtos';
+  try {
+    await sbPatch(tabela, { id: `eq.${id}` }, { destaque: novoValor });
+    item.destaque = novoValor;
+    btn.style.color = novoValor ? '#f1c40f' : 'var(--text2)';
+    btn.title = novoValor ? 'Remover destaque' : 'Marcar destaque';
+    const nomeTxt = btn.closest('tr').querySelector('.item-nome-txt');
+    if (nomeTxt) nomeTxt.innerHTML = (novoValor ? '<span style="color:#f1c40f;margin-right:3px">⭐</span>' : '') + item.nome + (item.descricao ? `<br><small style="color:var(--text2)">${item.descricao}</small>` : '');
+    toast(novoValor ? '⭐ Item em destaque!' : 'Destaque removido', 'ok');
+  } catch (e) {
+    toast('Erro ao alterar destaque', 'err');
+  }
+}
+
+function editarItem(tipo, id) {
+  abrirModalItem(tipo, id);
+}
+
+let _miTipo = null, _miId = null, _miFotoRemover = false;
+
+function abrirModalItem(tipo, id) {
+  const item = (window._cardapioItens || []).find(i => i.id == id && i._tipo === tipo);
+  if (!item) { toast('Item não encontrado', 'err'); return; }
+  _miTipo = tipo; _miId = id; _miFotoRemover = false;
+
+  document.getElementById('mi-titulo').textContent = tipo === 'sabor' ? 'Editar sabor' : 'Editar produto';
+  document.getElementById('mi-nome').value = item.nome || '';
+  document.getElementById('mi-desc-label').textContent = tipo === 'sabor' ? 'Ingredientes (ex: bacon, mussarela)' : 'Descrição';
+  document.getElementById('mi-desc').value = item.descricao || '';
+
+  const precoWrap = document.getElementById('mi-preco-wrap');
+  precoWrap.style.display = tipo === 'produto' ? 'block' : 'none';
+  if (tipo === 'produto') document.getElementById('mi-preco').value = item.preco ?? '';
+  document.getElementById('mi-btn-sugerir').style.display = tipo === 'produto' ? 'block' : 'none';
+
+  document.getElementById('mi-foto-input').value = '';
+  document.getElementById('mi-foto-label').textContent = 'Escolher foto (JPG/PNG, até 2MB)';
+  const preview = document.getElementById('mi-foto-preview');
+  if (item.foto_url) {
+    document.getElementById('mi-foto-img').src = item.foto_url + '?t=' + Date.now();
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+
+  document.getElementById('modal-item').style.display = 'flex';
+}
+
+function fecharModalItem() {
+  document.getElementById('modal-item').style.display = 'none';
+  _miTipo = null; _miId = null;
+}
+
+function previewFotoModal(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Foto muito grande (máx 2MB)', 'err'); input.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('mi-foto-img').src = e.target.result;
+    document.getElementById('mi-foto-preview').style.display = 'block';
+    document.getElementById('mi-foto-label').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+const _FOTO_BEBIDAS = [
+  { k:['coca-cola','coca cola','coca zero','coca 2l','coca lata','coca garrafa','coca','coke'], u:'../assets/bebidas/coca-cola.jpg' },
+  { k:['pepsi'],                                                                                u:'../assets/bebidas/pepsi.jpg' },
+  { k:['guarana','guaraná','guaraná antarctica','guarana antarctica'],                          u:'../assets/bebidas/guarana.jpg' },
+  { k:['sprite','7up','7 up'],                                                                  u:'../assets/bebidas/sprite.jpg' },
+  { k:['fanta'],                                                                                u:'../assets/bebidas/fanta.jpg' },
+  { k:['agua com gas','água com gás','agua gas','com gas','com gás'],                          u:'../assets/bebidas/agua-com-gas.jpg' },
+  { k:['agua','água','mineral'],                                                                u:'../assets/bebidas/agua.jpg' },
+  { k:['cerveja','chopp','beer'],                                                               u:'../assets/bebidas/cerveja.jpg' },
+  { k:['vinho tinto'],                                                                          u:'../assets/bebidas/vinho.jpg' },
+  { k:['vinho'],                                                                                u:'../assets/bebidas/vinho.jpg' },
+  { k:['suco laranja','suco de laranja'],                                                       u:'../assets/bebidas/suco-laranja.jpg' },
+  { k:['limonada','suco limao','suco de limão'],                                                u:'../assets/bebidas/limonada.jpg' },
+  { k:['suco maracuja','suco de maracujá'],                                                     u:'../assets/bebidas/limonada.jpg' },
+  { k:['suco uva','suco de uva'],                                                               u:'../assets/bebidas/suco-uva.jpg' },
+  { k:['suco morango'],                                                                         u:'../assets/bebidas/suco-morango.jpg' },
+  { k:['suco abacaxi'],                                                                         u:'../assets/bebidas/suco-abacaxi.jpg' },
+  { k:['suco'],                                                                                 u:'../assets/bebidas/suco-laranja.jpg' },
+  { k:['vitamina','smoothie'],                                                                  u:'../assets/bebidas/suco-morango.jpg' },
+  { k:['energetico','energético','red bull','redbull','monster'],                               u:'../assets/bebidas/red-bull.jpg' },
+  { k:['cafe','café','coffee'],                                                                 u:'../assets/bebidas/cafe.jpg' },
+  { k:['cha gelado','chá gelado','ice tea'],                                                    u:'../assets/bebidas/cha.jpg' },
+  { k:['cha','chá'],                                                                            u:'../assets/bebidas/cha.jpg' },
+  { k:['leite','milk'],                                                                         u:'../assets/bebidas/leite.jpg' },
+  { k:['refrigerante','refrig'],                                                                u:'../assets/bebidas/coca-cola.jpg' },
+];
+
+function _norm(s) {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function sugerirFoto() {
+  const nome = _norm(document.getElementById('mi-nome').value);
+  if (!nome) { toast('Digite o nome do produto primeiro', 'err'); return; }
+
+  const match = _FOTO_BEBIDAS.find(e => e.k.some(k => nome.includes(_norm(k))));
+  if (!match) { toast('Foto não encontrada. Faça upload manual.', ''); return; }
+
+  document.getElementById('mi-foto-img').src = match.u;
+  document.getElementById('mi-foto-preview').style.display = 'block';
+  document.getElementById('mi-foto-label').textContent = 'Foto sugerida — salve para confirmar';
+  document.getElementById('mi-foto-input').value = '';
+  _miFotoRemover = false;
+  window._miFotoSugerida = match.u;
+  toast('Foto encontrada!', 'ok');
+}
+
+function removerFotoModal() {
+  _miFotoRemover = true;
+  document.getElementById('mi-foto-preview').style.display = 'none';
+  document.getElementById('mi-foto-input').value = '';
+  document.getElementById('mi-foto-label').textContent = 'Escolher foto (JPG/PNG, até 2MB)';
+}
+
+async function salvarModalItem() {
+  const nome = document.getElementById('mi-nome').value.trim();
+  if (!nome) { toast('Nome obrigatório', 'err'); return; }
+
+  const btn = document.getElementById('mi-btn-salvar');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+
+  const tabela = _miTipo === 'sabor' ? 'sabores' : 'produtos';
+  const dados = { nome, descricao: document.getElementById('mi-desc').value.trim() || null };
+
+  if (_miTipo === 'produto') {
+    const p = parseFloat(document.getElementById('mi-preco').value.replace(',', '.'));
+    if (!isNaN(p) && p > 0) dados.preco = p;
+  }
+
+  const fileInput = document.getElementById('mi-foto-input');
+  const file = fileInput.files[0];
+
+  if (file) {
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const path = `${NEGOCIO.id}/${_miTipo}/${_miId}.${ext}`;
+      const uploadResp = await fetch(`${SUPABASE_URL}/storage/v1/object/Cardapio/${path}`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': file.type, 'x-upsert': 'true' },
+        body: file
+      });
+      if (uploadResp.ok) {
+        dados.foto_url = `${SUPABASE_URL}/storage/v1/object/public/Cardapio/${path}?t=${Date.now()}`;
+      } else {
+        const err = await uploadResp.text();
+        toast('Erro no upload: ' + err, 'err');
+        btn.textContent = 'Salvar'; btn.disabled = false;
+        return;
+      }
+    } catch(e) {
+      toast('Erro ao enviar foto', 'err');
+      btn.textContent = 'Salvar'; btn.disabled = false;
+      return;
+    }
+  } else if (window._miFotoSugerida && document.getElementById('mi-foto-label').textContent.includes('sugerida')) {
+    dados.foto_url = window._miFotoSugerida;
+    window._miFotoSugerida = null;
+  } else if (_miFotoRemover) {
+    dados.foto_url = null;
+  }
+
+  try {
+    await sbPatch(tabela, { id: `eq.${_miId}` }, dados);
+    toast('Atualizado!', 'ok');
+    fecharModalItem();
+    carregarCardapio();
+  } catch(e) { toast('Erro ao salvar', 'err'); }
+
+  btn.textContent = 'Salvar'; btn.disabled = false;
+}
+
+async function removerItem(tipo, id) {
+  const item = (window._cardapioItens || []).find(i => i.id == id && i._tipo === tipo);
+  const nome = item?.nome || 'este item';
+  if (!confirm(`Remover "${nome}"? Esta ação não pode ser desfeita.`)) return;
+  const tabela = tipo === 'sabor' ? 'sabores' : 'produtos';
+  try {
+    await sbDelete(tabela, { id: `eq.${id}` });
+    toast('Removido!', 'ok');
+    carregarCardapio();
+  } catch(e) { toast('Erro ao remover: ' + e.message, 'err'); }
+}
+
+async function adicionarSabor() {
+  const nome = prompt('Nome do sabor:');
+  if (!nome?.trim()) return;
+  const desc = prompt('Descrição (opcional):') || '';
+  const cats = Object.entries(window._catMap || {});
+  let categoriaId = null;
+  if (cats.length) {
+    const lista = cats.map(([,n], i) => `${i+1}. ${n}`).join('\n');
+    const esp = prompt(`Categoria:\n${lista}\nDigite o número:`, '1');
+    const idx = parseInt(esp) - 1;
+    if (idx >= 0 && idx < cats.length) categoriaId = cats[idx][0];
+  }
+  try {
+    await sbPost('sabores', { negocio_id: NEGOCIO.id, nome: nome.trim(), descricao: desc.trim() || null, categoria_id: categoriaId, disponivel: true });
+    toast('Sabor adicionado!', 'ok');
+    carregarCardapio();
+  } catch(e) { toast('Erro: ' + e.message, 'err'); }
+}
+
+async function adicionarProduto() {
+  const nome = prompt('Nome do produto:');
+  if (!nome?.trim()) return;
+  const precoStr = prompt('Preço (R$):');
+  if (!precoStr) return;
+  const preco = parseFloat(precoStr.replace(',', '.'));
+  if (isNaN(preco) || preco <= 0) { toast('Preço inválido', 'err'); return; }
+  const desc = prompt('Descrição (opcional):') || '';
+  const cats = Object.entries(window._catMap || {});
+  let categoriaId = null;
+  if (cats.length) {
+    const lista = cats.map(([,n], i) => `${i+1}. ${n}`).join('\n');
+    const esp = prompt(`Categoria:\n${lista}\nDigite o número:`, '1');
+    const idx = parseInt(esp) - 1;
+    if (idx >= 0 && idx < cats.length) categoriaId = cats[idx][0];
+  }
+  try {
+    await sbPost('produtos', { negocio_id: NEGOCIO.id, nome: nome.trim(), preco, descricao: desc.trim() || null, categoria_id: categoriaId, disponivel: true });
+    toast('Produto adicionado!', 'ok');
+    carregarCardapio();
+  } catch(e) { toast('Erro: ' + e.message, 'err'); }
+}
+
+// ============================================================
+// BAIRROS
+// ============================================================
+function trocarModoEntrega(modo, salvar = true) {
+  ['distancia','bairros','importar'].forEach(m => {
+    document.getElementById(`modo-card-${m}`).classList.toggle('ativo', m === modo);
+    document.getElementById(`painel-${m}`).style.display = m === modo ? 'block' : 'none';
+  });
+  if (modo === 'bairros') carregarBairros(false);
+  if (salvar) {
+    const modulos = { ...(NEGOCIO.modulos || {}), modo_entrega: modo };
+    salvarCampo({ modulos });
+  }
+}
+
+async function importarBairrosEMudar() {
+  await importarBairros();
+  trocarModoEntrega('bairros');
+}
+
+async function carregarBairros(carregarModo = true) {
+  if (carregarModo) {
+    const modo = (NEGOCIO.modulos || {}).modo_entrega || 'distancia';
+    trocarModoEntrega(modo, false);
+    // Preencher campos de distância
+    const m = NEGOCIO.modulos || {};
+    const taxaKmEl = document.getElementById('cfg-taxa-km');
+    const taxaMinEl = document.getElementById('cfg-taxa-minima');
+    const statusEl = document.getElementById('cfg-coords-status');
+    if (taxaKmEl) taxaKmEl.value = m.taxa_por_km || '2.00';
+    if (taxaMinEl) taxaMinEl.value = m.taxa_minima || '5.00';
+    if (statusEl) {
+      if (m.coords_lat && m.coords_lng) {
+        statusEl.style.color = 'var(--green)';
+        statusEl.textContent = `✓ Coordenadas salvas: ${parseFloat(m.coords_lat).toFixed(5)}, ${parseFloat(m.coords_lng).toFixed(5)}`;
+      } else {
+        statusEl.style.color = 'var(--text2)';
+        statusEl.textContent = 'Nenhuma coordenada salva ainda.';
+      }
+    }
+  }
+  try {
+    const bairros = await sbGet('zonas_entrega', { negocio_id: `eq.${NEGOCIO.id}`, select: '*', order: 'nome.asc' });
+    window._bairros = bairros;
+    renderBairros(bairros);
+  } catch (e) {
+    toast('Erro ao carregar bairros', 'err');
+  }
+}
+
+function renderBairros(bairros) {
+  const tbody = document.getElementById('bairros-tbody');
+  if (!bairros.length) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="vazio">Nenhum bairro cadastrado</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = bairros.map(b => {
+    const on = b.disponivel ? 'on' : '';
+    return `
+      <tr>
+        <td>${b.nome}${b.observacao ? `<br><small style="color:var(--text2)">${b.observacao}</small>` : ''}</td>
+        <td>R$ ${parseFloat(b.taxa).toFixed(2).replace('.', ',')}</td>
+        <td><button class="toggle ${on}" onclick="toggleBairro('${b.id}',this)"></button></td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn sm ghost" onclick="editarTaxa('${b.id}','${b.nome}',${b.taxa})">Editar taxa</button>
+            <button class="btn sm ghost" style="color:var(--accent)" onclick="removerBairro('${b.id}','${b.nome}')">🗑</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function toggleBairro(id, btn) {
+  const novoValor = !btn.classList.contains('on');
+  try {
+    await sbPatch('zonas_entrega', { id: `eq.${id}` }, { disponivel: novoValor });
+    btn.classList.toggle('on', novoValor);
+  } catch (e) {
+    toast('Erro', 'err');
+  }
+}
+
+async function editarTaxa(id, nome, taxaAtual) {
+  const nova = prompt(`Taxa de entrega para "${nome}" (R$):`, taxaAtual);
+  if (nova === null) return;
+  const taxa = parseFloat(nova.replace(',', '.'));
+  if (isNaN(taxa)) { toast('Valor inválido', 'err'); return; }
+  try {
+    await sbPatch('zonas_entrega', { id: `eq.${id}` }, { taxa });
+    toast('Taxa atualizada!', 'ok');
+    carregarBairros();
+  } catch (e) {
+    toast('Erro ao salvar', 'err');
+  }
+}
+
+async function removerBairro(id, nome) {
+  if (!confirm(`Remover bairro "${nome}"?`)) return;
+  try {
+    await sbDelete('zonas_entrega', { id: `eq.${id}` });
+    toast('Bairro removido!', 'ok');
+    carregarBairros();
+  } catch(e) { toast('Erro ao remover: ' + e.message, 'err'); }
+}
+
+async function abrirModalBairro() {
+  const nome = prompt('Nome do bairro ou região:');
+  if (!nome) return;
+  const taxa = prompt('Taxa de entrega (R$):');
+  if (taxa === null) return;
+  const t = parseFloat(taxa.replace(',', '.'));
+  if (isNaN(t)) { toast('Valor inválido', 'err'); return; }
+  try {
+    await sbPost('zonas_entrega', { negocio_id: NEGOCIO.id, nome: nome.trim(), taxa: t });
+    toast('Bairro adicionado!', 'ok');
+    carregarBairros();
+  } catch (e) {
+    toast('Erro ao adicionar bairro', 'err');
+  }
+}
+
+async function importarBairros() {
+  const cidade = (NEGOCIO.cidade || '').trim();
+  if (!cidade) { toast('Cadastre a cidade do negócio antes de importar', 'err'); return; }
+
+  toast('Buscando bairros de ' + cidade + '...', 'ok');
+
+  let lista = [];
+  try {
+    // 1. Nominatim → pega o relation ID da cidade no OSM
+    const nomResp = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cidade + ', Brasil')}&format=json&limit=5&addressdetails=0`,
+      { headers: { 'User-Agent': 'ZapComanda/1.0' } }
+    );
+    const nomData = await nomResp.json();
+    const rel = nomData.find(r => r.osm_type === 'relation');
+    if (!rel) throw new Error('Cidade não encontrada no OpenStreetMap');
+    const osmId = rel.osm_id;
+
+    // 2. Overpass → bairros dentro da cidade usando o relation ID
+    const query = `[out:json][timeout:25];rel(${osmId});map_to_area->.a;(node["place"~"neighbourhood|suburb|quarter"](area.a););out body;`;
+    const ovResp = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'data=' + encodeURIComponent(query)
+    });
+    const ovData = await ovResp.json();
+    lista = [...new Set(
+      (ovData.elements || [])
+        .map(e => (e.tags['name:pt'] || e.tags.name || '').trim())
+        .filter(n => n.length > 1)
+    )].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  } catch (e) {
+    toast('Erro ao buscar bairros: ' + e.message, 'err');
+    return;
+  }
+
+  if (!lista.length) {
+    toast(`Nenhum bairro encontrado para "${cidade}" no OpenStreetMap. Adicione manualmente.`, 'err');
+    return;
+  }
+
+  if (!confirm(`Encontrados ${lista.length} bairros em ${cidade} (OpenStreetMap).\n\nTodas as taxas começam em R$0,00. Edite individualmente depois.\n\nBairros já cadastrados serão ignorados.\n\nImportar?`)) return;
+
+  const existentes = (window._bairros || []).map(b => b.nome.toLowerCase());
+  const novos = lista.filter(b => !existentes.includes(b.toLowerCase()));
+  if (!novos.length) { toast('Todos os bairros já estão cadastrados', 'ok'); return; }
+
+  try {
+    for (const nome of novos) {
+      await sbPost('zonas_entrega', { negocio_id: NEGOCIO.id, nome, taxa: 0, disponivel: true });
+    }
+    toast(`${novos.length} bairros importados!`, 'ok');
+    carregarBairros();
+  } catch (e) {
+    toast('Erro ao salvar bairros: ' + e.message, 'err');
+  }
+}
+
+// ============================================================
+// COMBOS
+// ============================================================
+async function carregarCombos() {
+  try {
+    const combos = await sbGet('combos', { negocio_id: `eq.${NEGOCIO.id}`, select: '*' });
+    const lista = document.getElementById('combos-lista');
+    if (!combos.length) {
+      lista.innerHTML = '<div class="vazio"><div class="icon">🎁</div>Nenhum combo cadastrado</div>';
+      return;
+    }
+    lista.innerHTML = combos.map(c => `
+      <div class="pedido-card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <div style="font-weight:700">${c.nome}</div>
+            <div style="font-size:0.85rem;color:var(--text2);margin:4px 0">${c.descricao || ''}</div>
+            <div style="font-size:0.85rem;color:var(--text2)">${(c.itens_inclusos || []).map(i => i.nome).join(' + ')}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:700;color:var(--green)">R$ ${parseFloat(c.preco).toFixed(2).replace('.', ',')}</div>
+            <button class="toggle ${c.ativo ? 'on' : ''}" style="margin-top:8px" onclick="toggleCombo('${c.id}',this)"></button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('combos-lista').innerHTML = `<div class="vazio" style="color:var(--accent)">❌ Erro ao carregar combos<br><small style="color:var(--text2)">${e.message}</small></div>`;
+  }
+}
+
+async function abrirModalCombo() {
+  const nome = prompt('Nome do combo:\nEx: Combo Família (2 pizzas + 2 bebidas)');
+  if (!nome) return;
+  const desc = prompt('Descrição (opcional):') || '';
+  const preco = prompt('Preço do combo (R$):');
+  if (!preco) return;
+  const p = parseFloat(preco.replace(',', '.'));
+  if (isNaN(p) || p <= 0) { toast('Preço inválido', 'err'); return; }
+  try {
+    await sbPost('combos', {
+      negocio_id: NEGOCIO.id,
+      nome: nome.trim(),
+      descricao: desc.trim() || null,
+      preco: p,
+      ativo: true,
+      itens_inclusos: []
+    });
+    toast('Combo criado!', 'ok');
+    carregarCombos();
+  } catch (e) {
+    toast('Erro ao criar combo', 'err');
+  }
+}
+
+async function toggleCombo(id, btn) {
+  const novoValor = !btn.classList.contains('on');
+  try {
+    await sbPatch('combos', { id: `eq.${id}` }, { ativo: novoValor });
+    btn.classList.toggle('on', novoValor);
+  } catch (e) {
+    toast('Erro', 'err');
+  }
+}
+
+// ============================================================
+// CONFIGURAÇÕES
+// ============================================================
+async function carregarConfig() {
+  // Sempre busca do banco para garantir dados atualizados
+  try {
+    const dados = await sbGet('negocios', { id: `eq.${NEGOCIO.id}`, select: '*' });
+    if (dados.length) Object.assign(NEGOCIO, dados[0]);
+  } catch(e) { /* usa cache se falhar */ }
+
+  const neg = NEGOCIO;
+  document.getElementById('cfg-pedido-minimo').value  = neg.pedido_minimo || '';
+  document.getElementById('cfg-tempo-entrega').value  = neg.tempo_estimado_entrega || '';
+  document.getElementById('cfg-tempo-retirada').value = neg.tempo_estimado_retirada || '';
+  document.getElementById('cfg-notif-caixa').value    = neg.numero_notificacao_caixa || '';
+  document.getElementById('cfg-notif-cozinha').value  = neg.numero_notificacao_cozinha || '';
+  document.getElementById('cfg-pagamento').value      = neg.formas_pagamento || '';
+  document.getElementById('cfg-endereco').value       = neg.endereco || '';
+  document.getElementById('cfg-cidade').value         = neg.cidade || '';
+  document.getElementById('cfg-prompt-ia').value     = neg.prompt_personalizado || '';
+
+  // Evolution API
+  const m = neg.modulos || {};
+  document.getElementById('cfg-evolution-url').value    = m.evolution_url    || 'http://31.97.20.179:8080';
+  document.getElementById('cfg-evolution-apikey').value = m.evolution_apikey || '';
+
+
+  // Horários
+  const dias = ['seg','ter','qua','qui','sex','sab','dom'];
+  const labels = { seg:'Seg', ter:'Ter', qua:'Qua', qui:'Qui', sex:'Sex', sab:'Sab', dom:'Dom' };
+  const horarios = neg.horarios || {};
+  const sempreAberto = horarios.sempre_aberto || false;
+  const form = document.getElementById('horarios-form');
+  form.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0 14px;border-bottom:1px solid var(--border);margin-bottom:14px">
+      <button class="toggle ${sempreAberto ? 'on' : ''}" id="toggle-sempre-aberto" onclick="toggleSempreAberto(this)"></button>
+      <div>
+        <div style="font-size:0.88rem;font-weight:600">Sempre aberto</div>
+        <div style="font-size:0.78rem;color:var(--text2)">24 horas — ignora os horários abaixo</div>
+      </div>
+    </div>
+    <div id="horarios-dias" style="${sempreAberto ? 'opacity:0.4;pointer-events:none' : ''}">
+  ` + dias.map(d => {
+    const h = horarios[d] || { abre: '11:00', fecha: '14:00', ativo: true, periodo2: false, abre2: '18:00', fecha2: '23:00' };
+    const p2 = h.periodo2 || false;
+    return `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="toggle ${h.ativo ? 'on' : ''}" id="ativo-${d}" onclick="this.classList.toggle('on')" title="Aberto/Fechado"></button>
+          <span style="width:28px;font-size:0.85rem;font-weight:600">${labels[d]}</span>
+          <input type="time" id="abre-${d}" value="${h.abre || '11:00'}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 7px;font-size:0.82rem;width:90px">
+          <span style="color:var(--text2);font-size:0.78rem">às</span>
+          <input type="time" id="fecha-${d}" value="${h.fecha || '14:00'}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 7px;font-size:0.82rem;width:90px">
+          <button id="btn-p2-${d}" onclick="togglePeriodo2('${d}')" title="Adicionar 2º período"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);padding:4px 9px;font-size:0.78rem;cursor:pointer;flex-shrink:0;${p2 ? 'display:none' : ''}">
+            +
+          </button>
+        </div>
+        <div id="p2-${d}" style="display:${p2 ? 'flex' : 'none'};align-items:center;gap:8px;margin-top:6px">
+          <span style="width:36px;flex-shrink:0"></span>
+          <span style="width:28px;flex-shrink:0"></span>
+          <input type="time" id="abre2-${d}" value="${h.abre2 || '18:00'}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 7px;font-size:0.82rem;width:90px">
+          <span style="color:var(--text2);font-size:0.78rem">às</span>
+          <input type="time" id="fecha2-${d}" value="${h.fecha2 || '23:00'}" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 7px;font-size:0.82rem;width:90px">
+          <button onclick="ocultarPeriodo2('${d}')" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:1rem;padding:2px 4px;line-height:1" title="Remover 2º período">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('') + '</div>';
+}
+
+function toggleSempreAberto(btn) {
+  btn.classList.toggle('on');
+  const ativo = btn.classList.contains('on');
+  document.getElementById('horarios-dias').style.opacity = ativo ? '0.4' : '1';
+  document.getElementById('horarios-dias').style.pointerEvents = ativo ? 'none' : '';
+}
+
+async function salvarHorarios() {
+  const dias = ['seg','ter','qua','qui','sex','sab','dom'];
+  const horarios = {};
+  dias.forEach(d => {
+    const p2div = document.getElementById('p2-' + d);
+    const p2ativo = p2div && p2div.style.display !== 'none';
+    horarios[d] = {
+      abre:    document.getElementById(`abre-${d}`).value,
+      fecha:   document.getElementById(`fecha-${d}`).value,
+      ativo:   document.getElementById(`ativo-${d}`).classList.contains('on'),
+      periodo2: p2ativo,
+      abre2:   p2ativo ? document.getElementById(`abre2-${d}`).value : null,
+      fecha2:  p2ativo ? document.getElementById(`fecha2-${d}`).value : null
+    };
+  });
+  const sempreAberto = document.getElementById('toggle-sempre-aberto')?.classList.contains('on') || false;
+  await salvarCampo({ horarios: { ...horarios, sempre_aberto: sempreAberto } });
+}
+
+function togglePeriodo2(dia) {
+  const div = document.getElementById('p2-' + dia);
+  const btn = document.getElementById('btn-p2-' + dia);
+  div.style.display = 'flex';
+  btn.style.display = 'none';
+}
+
+function ocultarPeriodo2(dia) {
+  const div = document.getElementById('p2-' + dia);
+  const btn = document.getElementById('btn-p2-' + dia);
+  div.style.display = 'none';
+  btn.style.display = '';
+}
+
+async function salvarEntrega() {
+  await salvarCampo({
+    pedido_minimo:             parseFloat(document.getElementById('cfg-pedido-minimo').value) || 30,
+    tempo_estimado_entrega:    document.getElementById('cfg-tempo-entrega').value,
+    tempo_estimado_retirada:   document.getElementById('cfg-tempo-retirada').value
+  });
+}
+
+async function salvarNotificacoes() {
+  await salvarCampo({
+    numero_notificacao_caixa:   document.getElementById('cfg-notif-caixa').value,
+    numero_notificacao_cozinha: document.getElementById('cfg-notif-cozinha').value
+  });
+}
+
+async function salvarPagamento() {
+  await salvarCampo({
+    formas_pagamento: document.getElementById('cfg-pagamento').value,
+    endereco:         document.getElementById('cfg-endereco').value,
+    cidade:           document.getElementById('cfg-cidade').value.trim()
+  });
+}
+
+async function gerarPromptIA() {
+  const descricao = document.getElementById('cfg-descricao-negocio').value.trim();
+  if (!descricao) { alert('Descreva seu negócio primeiro!'); return; }
+  const btn = document.getElementById('btn-gerar-ia');
+  btn.disabled = true;
+  btn.textContent = '⏳ Gerando...';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': window.ANTHROPIC_KEY || '',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: `Você é especialista em criar instruções para bots de atendimento no WhatsApp.
+
+Com base na descrição abaixo, crie instruções completas para o bot atender clientes. As instruções devem:
+- Ter um fluxo de atendimento claro com passos numerados
+- Incluir todas as informações do negócio (preços, horários, serviços, regras especiais)
+- Definir como lidar com perguntas comuns
+- Ao final de cada atendimento concluído, perguntar "Posso te ajudar com mais alguma coisa? 😊"
+- Ser escritas em português brasileiro
+- Regras de estilo obrigatórias ao final: mensagens curtas (máximo 4 linhas), sem markdown, máximo 2 emojis por mensagem, simpático e direto, nunca inventar informações
+
+Descrição do negócio:
+${descricao}
+
+Retorne APENAS o texto das instruções, sem introdução nem explicação.` }]
+      })
+    });
+    const data = await resp.json();
+    const texto = data.content?.[0]?.text || '';
+    if (!texto) throw new Error('Resposta vazia da IA');
+    document.getElementById('cfg-prompt-ia').value = texto;
+  } catch(e) {
+    alert('Erro ao gerar: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Gerar com IA';
+  }
+}
+
+async function salvarPromptIA() {
+  await salvarCampo({ prompt_personalizado: document.getElementById('cfg-prompt-ia').value.trim() });
+}
+
+async function salvarEvolution() {
+  const url    = document.getElementById('cfg-evolution-url').value.trim();
+  const apikey = document.getElementById('cfg-evolution-apikey').value.trim();
+  const modulosAtuais = NEGOCIO.modulos || {};
+  const novosModulos  = { ...modulosAtuais, evolution_url: url, evolution_apikey: apikey };
+  await salvarCampo({ modulos: novosModulos });
+}
+
+async function salvarEntregaDistancia() {
+  const endereco = document.getElementById('cfg-rest-geo').value.trim();
+  const taxaKm  = parseFloat(document.getElementById('cfg-taxa-km').value.replace(',','.')) || 2;
+  const taxaMin = parseFloat(document.getElementById('cfg-taxa-minima').value.replace(',','.')) || 5;
+  const statusEl = document.getElementById('cfg-coords-status');
+
+  let coords = {};
+  if (endereco) {
+    statusEl.style.color = 'var(--text2)';
+    statusEl.textContent = 'Buscando coordenadas...';
+    try {
+      const resp = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1&countrycodes=br`,
+        { headers: { 'User-Agent': 'ZapComanda/1.0' } }
+      );
+      const data = await resp.json();
+      if (!data.length) {
+        statusEl.style.color = 'var(--accent)';
+        statusEl.textContent = '❌ Endereço não encontrado. Tente: Rua, número, cidade, estado';
+        return;
+      }
+      coords = { coords_lat: parseFloat(data[0].lat), coords_lng: parseFloat(data[0].lon) };
+    } catch(e) {
+      statusEl.style.color = 'var(--accent)';
+      statusEl.textContent = '❌ Erro ao buscar coordenadas. Verifique a conexão.';
+      return;
+    }
+  }
+
+  const modulosAtuais = NEGOCIO.modulos || {};
+  const novosModulos = { ...modulosAtuais, taxa_por_km: taxaKm, taxa_minima: taxaMin, ...coords };
+  await salvarCampo({ modulos: novosModulos });
+
+  if (coords.coords_lat) {
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✓ ${coords.coords_lat.toFixed(5)}, ${coords.coords_lng.toFixed(5)}`;
+  }
+}
+
+async function salvarCampo(dados) {
+  try {
+    await sbPatch('negocios', { id: `eq.${NEGOCIO.id}` }, { ...dados, atualizado_em: new Date().toISOString() });
+    Object.assign(NEGOCIO, dados);
+    toast('Salvo com sucesso!', 'ok');
+  } catch (e) {
+    toast('Erro ao salvar', 'err');
+  }
+}
+
+// ============================================================
+// ADICIONAIS
+// ============================================================
+async function carregarAdicionais() {
+  try {
+    const adicionais = await sbGet('adicionais', { negocio_id: `eq.${NEGOCIO.id}`, select: '*', order: 'nome.asc' });
+    window._adicionais = adicionais;
+    renderAdicionais(adicionais);
+  } catch (e) {
+    toast('Erro ao carregar adicionais', 'err');
+  }
+}
+
+function renderAdicionais(lista) {
+  const tbody = document.getElementById('adicionais-tbody');
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="vazio"><div class="icon">➕</div>Nenhum adicional cadastrado ainda.<br><small>Adicione extras como "Bacon extra", "Queijo duplo", "Batata palha"…</small></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = lista.map(a => {
+    const on = a.disponivel ? 'on' : '';
+    const preco = parseFloat(a.preco || 0).toFixed(2).replace('.', ',');
+    return `
+      <tr>
+        <td>${a.nome}</td>
+        <td>R$ ${preco}</td>
+        <td><button class="toggle ${on}" onclick="toggleAdicional('${a.id}',this)"></button></td>
+        <td>
+          <div style="display:flex;gap:5px">
+            <button class="btn sm ghost" onclick="editarAdicional('${a.id}')" title="Editar">✏️</button>
+            <button class="btn sm ghost" style="color:var(--accent)" onclick="removerAdicional('${a.id}','${a.nome}')" title="Remover">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function toggleAdicional(id, btn) {
+  const novoValor = !btn.classList.contains('on');
+  try {
+    await sbPatch('adicionais', { id: `eq.${id}` }, { disponivel: novoValor });
+    btn.classList.toggle('on', novoValor);
+    toast(novoValor ? 'Adicional ativado' : 'Adicional desativado', 'ok');
+  } catch (e) {
+    toast('Erro ao alterar adicional', 'err');
+  }
+}
+
+async function editarAdicional(id) {
+  const item = (window._adicionais || []).find(a => a.id === id);
+  if (!item) return;
+  const nome = prompt('Nome do adicional:', item.nome);
+  if (nome === null) return;
+  const precoStr = prompt('Preço (R$):', item.preco ?? '0');
+  if (precoStr === null) return;
+  const preco = parseFloat(precoStr.replace(',', '.'));
+  if (isNaN(preco) || preco < 0) { toast('Preço inválido', 'err'); return; }
+  try {
+    await sbPatch('adicionais', { id: `eq.${id}` }, { nome: nome.trim(), preco });
+    toast('Atualizado!', 'ok');
+    carregarAdicionais();
+  } catch (e) { toast('Erro ao editar', 'err'); }
+}
+
+async function removerAdicional(id, nome) {
+  if (!confirm(`Remover adicional "${nome}"?`)) return;
+  try {
+    await sbDelete('adicionais', { id: `eq.${id}` });
+    toast('Removido!', 'ok');
+    carregarAdicionais();
+  } catch (e) { toast('Erro ao remover: ' + e.message, 'err'); }
+}
+
+async function abrirModalAdicional() {
+  const nome = prompt('Nome do adicional:\nEx: Bacon extra, Queijo duplo, Batata palha, Catupiry extra…');
+  if (!nome?.trim()) return;
+  const precoStr = prompt('Preço (R$):\nEx: 3.00 — use 0 para adicional sem custo');
+  if (precoStr === null) return;
+  const preco = parseFloat(precoStr.replace(',', '.'));
+  if (isNaN(preco) || preco < 0) { toast('Preço inválido', 'err'); return; }
+  try {
+    await sbPost('adicionais', { negocio_id: NEGOCIO.id, nome: nome.trim(), preco, disponivel: true });
+    toast('Adicional criado!', 'ok');
+    carregarAdicionais();
+  } catch (e) { toast('Erro: ' + e.message, 'err'); }
+}
+
+// ============================================================
+// LEADS (admin Hallogenic)
+// ============================================================
+// FILA DE ATENDIMENTO
+// ============================================================
+async function carregarFila() {
+  const el = document.getElementById('fila-lista');
+  try {
+    const clientes = await sbGet('clientes_finais', {
+      negocio_id: `eq.${NEGOCIO.id}`,
+      ia_pausada: 'eq.true',
+      order: 'ia_pausada_em.asc',
+      select: 'numero_whatsapp,nome,ia_pausada_em'
+    });
+
+    // Alerta sonoro quando entra alguém novo na fila
+    if (_filaCount !== null && clientes.length > _filaCount) {
+      tocarBeep();
+      document.title = `🔴 ${clientes.length} aguardando atendimento — ZapComanda`;
+      setTimeout(() => { document.title = 'ZapComanda — Painel'; }, 10000);
+    }
+    _filaCount = clientes.length;
+
+    // Atualiza badge no nav
+    const badge = document.getElementById('fila-badge');
+    if (clientes.length > 0) {
+      badge.textContent = clientes.length;
+      badge.style.display = 'inline';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (clientes.length === 0) {
+      el.innerHTML = '<div class="vazio" style="padding:40px 0">Nenhum cliente aguardando atendimento humano.</div>';
+      return;
+    }
+
+    const agora = Date.now();
+    const linhas = clientes.map(c => {
+      const pausadaEm = new Date(c.ia_pausada_em).getTime();
+      const minutos = Math.floor((agora - pausadaEm) / 60000);
+      const espera = minutos < 1 ? 'agora mesmo' : minutos === 1 ? '1 min' : `${minutos} min`;
+      const urgente = minutos >= 5;
+      const nome = c.nome || c.numero_whatsapp;
+      const wpp = c.numero_whatsapp;
+      const rowStyle = urgente ? 'background:rgba(229,62,62,0.12);color:#ff6b6b;font-weight:600' : '';
+      const estiloEspera = urgente ? 'color:#ff4444;font-weight:700;font-size:1rem' : 'color:#f1c40f';
+      return `<tr style="${rowStyle}">
+        <td>${nome}</td>
+        <td><a href="https://wa.me/${wpp}" target="_blank" style="color:#25D366">${wpp}</a></td>
+        <td style="${estiloEspera}">${urgente ? '🔴 ' : '⏳ '}${espera}</td>
+        <td>
+          <button class="btn sm ${urgente ? '' : 'ghost'}" onclick="abrirChat('${wpp}', '${nome.replace(/'/g,"\\'")}')">💬 Atender</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>WhatsApp</th><th>Esperando há</th><th></th></tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = '<div class="vazio">Erro ao carregar fila.</div>';
+  }
+}
+
+async function retomarIA(numero, btn) {
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/clientes_finais?negocio_id=eq.${NEGOCIO.id}&numero_whatsapp=eq.${numero}`, {
+      method: 'PATCH',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ ia_pausada: false, ia_pausada_em: null })
+    });
+    await carregarFila();
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '▶ Retomar IA';
+    alert('Erro ao retomar IA.');
+  }
+}
+
+// ============================================================
+async function carregarLeads() {
+  try {
+    const leads = await sbGet('leads', { order: 'criado_em.desc', select: '*', limit: '100' });
+    const tbody = document.getElementById('leads-tbody');
+    if (!leads.length) {
+      tbody.innerHTML = '<tr><td colspan="8"><div class="vazio">Nenhum lead ainda</div></td></tr>';
+      return;
+    }
+
+    const statusCor = { novo: 'var(--yellow)', em_contato: 'var(--blue)', convertido: 'var(--green)', descartado: '#555' };
+
+    tbody.innerHTML = leads.map(l => {
+      const data = new Date(l.criado_em).toLocaleDateString('pt-BR');
+      const wppLink = l.whatsapp ? `<a href="https://wa.me/55${l.whatsapp}" target="_blank" style="color:var(--green)">📲 ${l.whatsapp}</a>` : '—';
+      const cor = statusCor[l.status] || 'var(--text2)';
+      return `
+        <tr>
+          <td><strong>${l.nome}</strong><br><small style="color:var(--text2)">${l.cidade || ''} ${l.estado || ''}</small></td>
+          <td><small>${l.tipo || '—'}</small></td>
+          <td>${l.responsavel || '—'}</td>
+          <td>${wppLink}</td>
+          <td><small style="color:var(--accent)">${(l.plano || '').toUpperCase()}</small></td>
+          <td>
+            <select onchange="atualizarStatusLead('${l.id}',this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:${cor};padding:4px 8px;font-size:0.78rem">
+              <option value="novo" ${l.status==='novo'?'selected':''}>Novo</option>
+              <option value="em_contato" ${l.status==='em_contato'?'selected':''}>Em contato</option>
+              <option value="convertido" ${l.status==='convertido'?'selected':''}>Convertido</option>
+              <option value="descartado" ${l.status==='descartado'?'selected':''}>Descartado</option>
+            </select>
+          </td>
+          <td><small>${data}</small></td>
+          <td>${l.observacao ? `<small style="color:var(--text2)" title="${l.observacao}">💬</small>` : ''}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    toast('Erro ao carregar leads', 'err');
+  }
+}
+
+async function atualizarStatusLead(id, status) {
+  try {
+    await sbPatch('leads', { id: `eq.${id}` }, { status });
+    toast('Status atualizado', 'ok');
+  } catch (e) {
+    toast('Erro ao atualizar', 'err');
+  }
+}
+
+// ============================================================
+// AUTO-LOGIN (restaura sessão após refresh)
+// ============================================================
+async function tentarAutoLogin() {
+  const instance = localStorage.getItem('zc_instance');
+  const senha    = localStorage.getItem('zc_senha');
+  if (!instance || !senha) return;
+  try {
+    const negocios = await sbGet('negocios', { instance_name: `eq.${instance}`, select: '*' });
+    if (!negocios.length) { localStorage.removeItem('zc_instance'); localStorage.removeItem('zc_senha'); return; }
+    const neg = negocios[0];
+    const senhaCorreta = neg.senha_painel || (instance + '2024');
+    if (senha !== senhaCorreta) { localStorage.removeItem('zc_instance'); localStorage.removeItem('zc_senha'); return; }
+    NEGOCIO = neg;
+    iniciarApp();
+  } catch(e) { /* sem conexão — mostra login normalmente */ }
+}
+tentarAutoLogin();
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function toast(msg, tipo = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${tipo}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+// ============================================================
+// CHAT DO PAINEL (atendimento humano)
+// ============================================================
+let _chatNumero = null;
+let _chatPoll = null;
+let _chatMsgsConhecidas = 0;
+let FILA_POLL = null;
+
+async function verificarFilaBackground() {
+  if (!NEGOCIO) return;
+  try {
+    const clientes = await sbGet('clientes_finais', {
+      negocio_id: `eq.${NEGOCIO.id}`,
+      ia_pausada: 'eq.true',
+      select: 'numero_whatsapp'
+    });
+    const badge = document.getElementById('fila-badge');
+    if (clientes.length > 0) { badge.textContent = clientes.length; badge.style.display = 'inline'; }
+    else { badge.style.display = 'none'; }
+    if (_filaCount !== null && clientes.length > _filaCount) {
+      tocarBeep();
+      document.title = `🔴 ${clientes.length} aguardando atendimento — ZapComanda`;
+      setTimeout(() => { document.title = 'ZapComanda — Painel'; }, 10000);
+    }
+    _filaCount = clientes.length;
+    if (document.getElementById('aba-fila').classList.contains('ativa')) carregarFila();
+  } catch(e) {}
+}
+
+async function abrirChat(numero, nome) {
+  _chatNumero = numero;
+  document.getElementById('chat-nome').textContent = nome;
+  document.getElementById('chat-num').textContent = numero;
+  document.getElementById('chat-msg-input').value = '';
+  document.getElementById('modal-chat').classList.add('aberto');
+  _chatMsgsConhecidas = 0;
+  await carregarHistoricoChat();
+  _chatPoll = setInterval(carregarHistoricoChat, 5000);
+}
+
+function fecharChat() {
+  document.getElementById('modal-chat').classList.remove('aberto');
+  clearInterval(_chatPoll);
+  _chatNumero = null;
+}
+
+async function carregarHistoricoChat() {
+  if (!_chatNumero) return;
+  try {
+    const msgs = await sbGet('conversas', {
+      negocio_id: `eq.${NEGOCIO.id}`,
+      numero_whatsapp: `eq.${_chatNumero}`,
+      order: 'criado_em.asc',
+      select: 'papel,mensagem,criado_em'
+    });
+    const el = document.getElementById('chat-msgs');
+    const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 40;
+    el.innerHTML = msgs.map(m => {
+      const hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      return `<div style="display:flex;flex-direction:column;align-items:${m.papel==='user'?'flex-start':'flex-end'}">
+        <div class="msg-bubble ${m.papel}">${m.mensagem.replace(/\n/g,'<br>')}</div>
+        <div class="msg-hora">${hora}</div>
+      </div>`;
+    }).join('');
+    if (atBottom || msgs.length > _chatMsgsConhecidas) {
+      el.scrollTop = el.scrollHeight;
+      _chatMsgsConhecidas = msgs.length;
+    }
+  } catch(e) {}
+}
+
+async function enviarMensagemChat() {
+  const input = document.getElementById('chat-msg-input');
+  const texto = input.value.trim();
+  if (!texto || !_chatNumero) return;
+  input.value = '';
+  input.style.height = '44px';
+  const btn = document.getElementById('chat-send-btn');
+  btn.disabled = true;
+  try {
+    const jid = _chatNumero + '@s.whatsapp.net';
+    await fetch('https://n8n.hallogenic.com.br/webhook/send-whatsapp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instance: NEGOCIO.instance_name, apikey: NEGOCIO.modulos?.evolution_apikey, number: jid, text: texto })
+    });
+    await sbPost('conversas', {
+      negocio_id: NEGOCIO.id,
+      numero_whatsapp: _chatNumero,
+      papel: 'assistant',
+      mensagem: texto
+    });
+    await carregarHistoricoChat();
+  } catch(e) { input.value = texto; toast('Erro ao enviar mensagem', 'erro'); }
+  btn.disabled = false;
+}
+
+async function retomarIAEFechar() {
+  const num = _chatNumero;
+  fecharChat();
+  await fetch(`${SUPABASE_URL}/rest/v1/clientes_finais?negocio_id=eq.${NEGOCIO.id}&numero_whatsapp=eq.${num}`, {
+    method: 'PATCH',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ ia_pausada: false, ia_pausada_em: null })
+  });
+  carregarFila();
+  toast('IA retomada — cliente volta ao bot', 'ok');
+}
+
+// auto-expand textarea
+document.addEventListener('DOMContentLoaded', () => {
+  const ta = document.getElementById('chat-msg-input');
+  if (ta) {
+    ta.addEventListener('input', () => { ta.style.height = '44px'; ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'; });
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagemChat(); } });
+  }
+});
+</script>
+
+<!-- MODAL EDITAR ITEM -->
+<div id="modal-item" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#1a1a1a;border:1px solid #2e2e2e;border-radius:16px;padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto">
+    <h3 id="mi-titulo" style="font-size:1rem;margin-bottom:20px">Editar item</h3>
+    <div class="field">
+      <label>Nome *</label>
+      <input id="mi-nome" type="text">
+    </div>
+    <div class="field">
+      <label id="mi-desc-label">Descrição</label>
+      <input id="mi-desc" type="text">
+    </div>
+    <div class="field" id="mi-preco-wrap" style="display:none">
+      <label>Preço (R$) *</label>
+      <input id="mi-preco" type="number" step="0.01" min="0">
+    </div>
+    <div class="field">
+      <label>Foto do item</label>
+      <div id="mi-foto-preview" style="display:none;margin-bottom:10px">
+        <img id="mi-foto-img" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid #2e2e2e">
+        <button onclick="removerFotoModal()" style="margin-top:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:4px 10px;font-size:0.8rem;cursor:pointer">✕ Remover foto</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:#222;border:1px dashed #444;border-radius:8px;padding:12px;font-size:0.85rem;color:#999">
+        <span>📷</span>
+        <span id="mi-foto-label">Escolher foto (JPG/PNG, até 2MB)</span>
+        <input type="file" id="mi-foto-input" accept="image/*" style="display:none" onchange="previewFotoModal(this)">
+      </label>
+      <button id="mi-btn-sugerir" onclick="sugerirFoto()" style="display:none;margin-top:8px;width:100%;background:#1e3a2f;border:1px solid #2ecc71;color:#2ecc71;border-radius:8px;padding:8px;font-size:0.85rem;font-weight:600;cursor:pointer">✨ Sugerir foto automática</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button onclick="fecharModalItem()" style="flex:1;background:transparent;border:1px solid #2e2e2e;color:var(--text);border-radius:8px;padding:10px;font-size:0.9rem;cursor:pointer">Cancelar</button>
+      <button id="mi-btn-salvar" onclick="salvarModalItem()" style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.9rem;font-weight:600;cursor:pointer">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHAT -->
+<div id="modal-chat">
+  <div class="chat-box">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <span class="chat-header-nome" id="chat-nome"></span>
+        <span class="chat-header-num" id="chat-num"></span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn sm green" onclick="retomarIAEFechar()">✓ Retomar IA</button>
+        <button class="btn sm ghost" onclick="fecharChat()">✕</button>
+      </div>
+    </div>
+    <div class="chat-msgs" id="chat-msgs"></div>
+    <div class="chat-input-row">
+      <textarea id="chat-msg-input" placeholder="Digite sua resposta... (Enter envia)"></textarea>
+      <button class="btn" id="chat-send-btn" onclick="enviarMensagemChat()" style="height:44px;padding:0 14px">➤</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

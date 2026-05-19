@@ -598,6 +598,10 @@
           </select>
           <button class="btn sm green" onclick="adicionarSabor()">+ Sabor</button>
           <button class="btn sm blue" onclick="adicionarProduto()">+ Produto</button>
+          <label class="btn sm" style="background:#5b4fcf;border-color:#5b4fcf;cursor:pointer" title="Importar cardápio de PDF, Excel ou TXT">
+            📂 Importar
+            <input type="file" id="importar-arquivo" accept=".pdf,.xlsx,.xls,.csv,.txt" style="display:none" onchange="importarCardapio(this)">
+          </label>
         </div>
       </div>
       <div class="table-wrap">
@@ -3042,6 +3046,195 @@ async function confirmarDisparo() {
     </div>`;
 }
 
+// ============================================================
+// IMPORTAR CARDÁPIO
+// ============================================================
+let _importarItens = [];
+
+async function importarCardapio(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  const modal = document.getElementById('modal-importar');
+  modal.style.display = 'flex';
+  document.getElementById('importar-status').style.display = 'block';
+  document.getElementById('importar-preview').style.display = 'none';
+  document.getElementById('importar-erro').style.display = 'none';
+  document.getElementById('importar-status-txt').textContent = 'Lendo arquivo...';
+
+  try {
+    let conteudo = '';
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (['txt', 'csv'].includes(ext)) {
+      conteudo = await file.text();
+    } else if (['xlsx', 'xls'].includes(ext)) {
+      // Converte Excel para texto via leitura binária simplificada
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      // Extrai strings legíveis do binário (heurística para xls/xlsx)
+      const strings = [];
+      let current = '';
+      for (let i = 0; i < bytes.length; i++) {
+        const c = bytes[i];
+        if (c >= 32 && c < 127) {
+          current += String.fromCharCode(c);
+        } else {
+          if (current.length >= 2) strings.push(current);
+          current = '';
+        }
+      }
+      conteudo = strings.join('\t');
+    } else if (ext === 'pdf') {
+      // PDF: lê como texto binário e extrai strings legíveis
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      const decoder = new TextDecoder('latin1');
+      const raw = decoder.decode(bytes);
+      // Extrai blocos de texto entre BT/ET e strings entre parênteses
+      const matches = raw.match(/\(([^)]{1,200})\)/g) || [];
+      conteudo = matches.map(m => m.slice(1, -1)).filter(s => s.trim().length > 1).join('\n');
+      if (conteudo.length < 50) {
+        throw new Error('PDF com proteção ou baseado em imagem — tente salvar como TXT ou Excel.');
+      }
+    } else {
+      throw new Error('Formato não suportado. Use PDF, Excel (.xlsx) ou TXT.');
+    }
+
+    document.getElementById('importar-status-txt').textContent = 'Extraindo produtos com IA...';
+
+    const chave = localStorage.getItem('anthropic_key') || window.ANTHROPIC_KEY || (() => {
+      const k = prompt('Cole sua chave da API Anthropic (sk-ant-...):\n\nObtida em: console.anthropic.com/settings/keys');
+      if (k && k.startsWith('sk-')) { localStorage.setItem('anthropic_key', k); return k; }
+      throw new Error('Chave da API não fornecida.');
+    })();
+
+    const prompt = `Você vai analisar o conteúdo de um cardápio de restaurante e extrair todos os produtos.
+
+Retorne APENAS um JSON válido, sem explicações, sem markdown, sem código. Formato exato:
+{"produtos":[{"categoria":"Nome da Categoria","nome":"Nome do Produto","descricao":"Descrição breve ou null","preco":0.00}]}
+
+Regras:
+- categoria: agrupe produtos similares (ex: "Pizzas", "Bebidas", "Lanches", "Sobremesas")
+- nome: nome limpo do produto
+- descricao: ingredientes ou descrição curta, ou null se não houver
+- preco: número decimal (ex: 29.90), ou 0 se não encontrado
+- Ignore títulos, endereços, telefones, horários, informações que não sejam produtos
+- Se houver tamanhos (P/M/G), crie um produto para cada tamanho com nome "Pizza Calabresa P", "Pizza Calabresa M" etc.
+
+Conteúdo do cardápio:
+${conteudo.slice(0, 12000)}`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': chave,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!resp.ok) throw new Error('Erro na API Anthropic: ' + resp.status);
+    const data = await resp.json();
+    const texto = data.content[0].text.trim();
+
+    // Extrai JSON mesmo se vier com texto ao redor
+    const jsonMatch = texto.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('IA não retornou JSON válido. Tente novamente.');
+    const parsed = JSON.parse(jsonMatch[0]);
+    const itens = parsed.produtos || [];
+    if (!itens.length) throw new Error('Nenhum produto encontrado no arquivo.');
+
+    _importarItens = itens;
+
+    // Renderiza prévia
+    const tbody = document.getElementById('importar-tbody');
+    tbody.innerHTML = itens.map((it, i) => `
+      <tr style="border-bottom:1px solid #1e1e1e">
+        <td style="padding:8px 12px;color:var(--text2)">${it.categoria || '—'}</td>
+        <td style="padding:8px 12px;font-weight:500">${it.nome}</td>
+        <td style="padding:8px 12px;color:var(--text2);font-size:0.8rem">${it.descricao || '—'}</td>
+        <td style="padding:8px 12px;text-align:right;color:var(--green)">${it.preco > 0 ? 'R$ ' + parseFloat(it.preco).toFixed(2).replace('.', ',') : '—'}</td>
+      </tr>`).join('');
+
+    const cats = [...new Set(itens.map(i => i.categoria))];
+    document.getElementById('importar-resumo').textContent =
+      `${itens.length} produtos encontrados em ${cats.length} categorias: ${cats.join(', ')}`;
+
+    document.getElementById('importar-status').style.display = 'none';
+    document.getElementById('importar-preview').style.display = 'block';
+
+  } catch(e) {
+    document.getElementById('importar-status').style.display = 'none';
+    document.getElementById('importar-erro').style.display = 'block';
+    document.getElementById('importar-erro-txt').textContent = e.message;
+  }
+}
+
+async function confirmarImportacao() {
+  if (!_importarItens.length) return;
+  const btn = document.getElementById('btn-confirmar-importar');
+  btn.textContent = 'Salvando...'; btn.disabled = true;
+
+  try {
+    // Agrupa categorias únicas e cria as que não existem
+    const cats = [...new Set(_importarItens.map(i => i.categoria).filter(Boolean))];
+    const catMap = {};
+
+    // Busca categorias existentes
+    const existentes = await sbGet('categorias', { negocio_id: `eq.${NEGOCIO.id}`, select: 'id,nome' });
+    existentes.forEach(c => { catMap[c.nome.toLowerCase()] = c.id; });
+
+    // Cria as novas
+    for (const cat of cats) {
+      const key = cat.toLowerCase();
+      if (!catMap[key]) {
+        const nova = await sbPost('categorias', { negocio_id: NEGOCIO.id, nome: cat, disponivel: true });
+        if (nova && nova[0]) catMap[key] = nova[0].id;
+      }
+    }
+
+    // Insere produtos em lotes de 20
+    let salvos = 0;
+    const lote = 20;
+    for (let i = 0; i < _importarItens.length; i += lote) {
+      const batch = _importarItens.slice(i, i + lote).map(it => ({
+        negocio_id: NEGOCIO.id,
+        categoria_id: catMap[(it.categoria || '').toLowerCase()] || null,
+        nome: it.nome,
+        descricao: it.descricao || null,
+        preco: parseFloat(it.preco) || 0,
+        disponivel: true
+      }));
+      await fetch(`${SUPABASE_URL}/rest/v1/produtos`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(batch)
+      });
+      salvos += batch.length;
+    }
+
+    toast(`✅ ${salvos} produtos importados!`, 'ok');
+    fecharModalImportar();
+    carregarCardapio();
+  } catch(e) {
+    toast('Erro ao salvar: ' + e.message, 'err');
+    btn.textContent = '✓ Confirmar importação'; btn.disabled = false;
+  }
+}
+
+function fecharModalImportar() {
+  document.getElementById('modal-importar').style.display = 'none';
+  _importarItens = [];
+}
+
 // auto-expand textarea
 document.addEventListener('DOMContentLoaded', () => {
   const ta = document.getElementById('chat-msg-input');
@@ -3088,6 +3281,46 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="display:flex;gap:10px;margin-top:20px">
       <button onclick="fecharModalItem()" style="flex:1;background:transparent;border:1px solid #2e2e2e;color:var(--text);border-radius:8px;padding:10px;font-size:0.9rem;cursor:pointer">Cancelar</button>
       <button id="mi-btn-salvar" onclick="salvarModalItem()" style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.9rem;font-weight:600;cursor:pointer">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORTAR CARDÁPIO -->
+<div id="modal-importar" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:400;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto">
+  <div style="background:#1a1a1a;border:1px solid #2e2e2e;border-radius:16px;padding:24px;width:100%;max-width:680px;margin:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="font-size:1rem">📂 Importar Cardápio</h3>
+      <button onclick="fecharModalImportar()" style="background:transparent;border:none;color:var(--text2);font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+    <div id="importar-status" style="text-align:center;padding:40px 0;color:var(--text2)">
+      <div class="spinner" style="margin:0 auto 12px"></div>
+      <div id="importar-status-txt">Analisando cardápio...</div>
+    </div>
+    <div id="importar-preview" style="display:none">
+      <p style="font-size:0.85rem;color:var(--text2);margin-bottom:12px">Revise os itens extraídos antes de confirmar. Você poderá editar tudo depois no painel.</p>
+      <div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+          <thead style="position:sticky;top:0;background:#222">
+            <tr>
+              <th style="padding:10px 12px;text-align:left;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border)">Categoria</th>
+              <th style="padding:10px 12px;text-align:left;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border)">Nome</th>
+              <th style="padding:10px 12px;text-align:left;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border)">Descrição</th>
+              <th style="padding:10px 12px;text-align:right;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border)">Preço</th>
+            </tr>
+          </thead>
+          <tbody id="importar-tbody"></tbody>
+        </table>
+      </div>
+      <div id="importar-resumo" style="margin-top:12px;font-size:0.85rem;color:var(--text2)"></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button onclick="fecharModalImportar()" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-size:0.9rem;cursor:pointer">Cancelar</button>
+        <button id="btn-confirmar-importar" onclick="confirmarImportacao()" style="flex:2;background:#5b4fcf;color:#fff;border:none;border-radius:8px;padding:10px;font-size:0.9rem;font-weight:600;cursor:pointer">✓ Confirmar importação</button>
+      </div>
+    </div>
+    <div id="importar-erro" style="display:none;text-align:center;padding:30px 0">
+      <div style="font-size:2rem;margin-bottom:8px">⚠️</div>
+      <div id="importar-erro-txt" style="color:var(--accent);font-size:0.9rem"></div>
+      <button onclick="fecharModalImportar()" style="margin-top:16px;background:transparent;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 20px;cursor:pointer">Fechar</button>
     </div>
   </div>
 </div>

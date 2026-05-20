@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZapComanda — Painel do Restaurante</title>
+  <title>Kommanda — Painel do Restaurante</title>
+  <link rel="icon" type="image/png" href="img/icon-branco.png">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -482,7 +483,7 @@
 <div id="app">
   <header>
     <div class="header-left">
-      <span class="header-logo">⚡ <span id="marca-logo">ZapComanda</span></span>
+      <img src="img/logo-branca.png" alt="Kommanda" style="height:32px;object-fit:contain">
       <span class="header-nome" id="header-nome">Restaurante</span>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
@@ -1001,8 +1002,7 @@
 // CONFIG
 // ============================================================
 // ⬇ Troque aqui quando definir o nome da marca
-const MARCA = 'ZapComanda';
-document.getElementById('marca-logo').textContent = MARCA;
+const MARCA = 'Kommanda';
 
 const SUPABASE_URL = 'https://ukyalvcrtanuvldilbdb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVreWFsdmNydGFudXZsZGlsYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NDIzOTksImV4cCI6MjA5MTUxODM5OX0.5lXRGURsAQ5ubvmoWsmgjpw6hyYAtffTmMkZU4eX21Y';
@@ -1227,7 +1227,7 @@ async function carregarPedidos() {
       if (novos.length > 0) {
         tocarBeep();
         document.title = `🔴 ${novos.length} novo(s) pedido(s) — ZapComanda`;
-        setTimeout(() => { document.title = 'ZapComanda — Painel'; }, 8000);
+        setTimeout(() => { document.title = 'Kommanda — Painel'; }, 8000);
         if (Notification.permission === 'granted') {
           new Notification('🍕 Novo pedido!', {
             body: `${novos.length} novo(s) pedido(s) aguardando confirmação`,
@@ -2064,7 +2064,7 @@ async function importarBairros() {
     // 1. Nominatim → pega o relation ID da cidade no OSM
     const nomResp = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cidade + ', Brasil')}&format=json&limit=5&addressdetails=0`,
-      { headers: { 'User-Agent': 'ZapComanda/1.0' } }
+      { headers: { 'User-Agent': 'Kommanda/1.0' } }
     );
     const nomData = await nomResp.json();
     const rel = nomData.find(r => r.osm_type === 'relation');
@@ -2385,7 +2385,7 @@ async function salvarEntregaDistancia() {
     try {
       const resp = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endereco)}&limit=1&countrycodes=br`,
-        { headers: { 'User-Agent': 'ZapComanda/1.0' } }
+        { headers: { 'User-Agent': 'Kommanda/1.0' } }
       );
       const data = await resp.json();
       if (!data.length) {
@@ -2527,7 +2527,7 @@ async function carregarFila() {
     if (_filaCount !== null && clientes.length > _filaCount) {
       tocarBeep();
       document.title = `🔴 ${clientes.length} aguardando atendimento — ZapComanda`;
-      setTimeout(() => { document.title = 'ZapComanda — Painel'; }, 10000);
+      setTimeout(() => { document.title = 'Kommanda — Painel'; }, 10000);
     }
     _filaCount = clientes.length;
 
@@ -2696,7 +2696,7 @@ async function verificarFilaBackground() {
     if (_filaCount !== null && clientes.length > _filaCount) {
       tocarBeep();
       document.title = `🔴 ${clientes.length} aguardando atendimento — ZapComanda`;
-      setTimeout(() => { document.title = 'ZapComanda — Painel'; }, 10000);
+      setTimeout(() => { document.title = 'Kommanda — Painel'; }, 10000);
     }
     _filaCount = clientes.length;
     if (document.getElementById('aba-fila').classList.contains('ativa')) carregarFila();
